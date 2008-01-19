@@ -1,0 +1,31 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+DeviceChooser	DeviceChooser.cpp	/^DeviceChooser::DeviceChooser(QWidget* parent, $/;"	f	class:DeviceChooser
+DeviceChooser	DeviceChooser.h	/^  DeviceChooser(QWidget*, LIBMTP_mtpdevice_t*);$/;"	p	class:DeviceChooser	access:public
+DeviceChooser	DeviceChooser.h	/^class  DeviceChooser : public QScrollArea$/;"	c	inherits:QScrollArea
+DeviceChooser::DeviceChooser	DeviceChooser.cpp	/^DeviceChooser::DeviceChooser(QWidget* parent, $/;"	f	class:DeviceChooser
+DeviceChooser::DeviceChooser	DeviceChooser.h	/^  DeviceChooser(QWidget*, LIBMTP_mtpdevice_t*);$/;"	p	class:DeviceChooser	access:public
+DeviceChooser::_chooserGroupBox	DeviceChooser.h	/^  QGroupBox*  _chooserGroupBox;$/;"	m	class:DeviceChooser	access:private
+DeviceChooser::_chooserLayout	DeviceChooser.h	/^  QGridLayout* _chooserLayout;$/;"	m	class:DeviceChooser	access:private
+DeviceChooser::_deviceButtons	DeviceChooser.h	/^  QButtonVector _deviceButtons;$/;"	m	class:DeviceChooser	access:private
+DeviceChooser::_devices	DeviceChooser.h	/^  LIBMTP_mtpdevice_t* _devices;$/;"	m	class:DeviceChooser	access:private
+QButtonVector	DeviceChooser.h	/^typedef QVector<QToolButton*> QButtonVector;$/;"	t
+QlixMainWindow	QlixMainWindow.cpp	/^QlixMainWindow::QlixMainWindow(MtpSubSystem* in_subsystem)$/;"	f	class:QlixMainWindow
+QlixMainWindow	QlixMainWindow.h	/^  QlixMainWindow(MtpSubSystem*);$/;"	p	class:QlixMainWindow	access:public
+QlixMainWindow	QlixMainWindow.h	/^class QlixMainWindow : public QMainWindow$/;"	c	inherits:QMainWindow
+QlixMainWindow::QlixMainWindow	QlixMainWindow.cpp	/^QlixMainWindow::QlixMainWindow(MtpSubSystem* in_subsystem)$/;"	f	class:QlixMainWindow
+QlixMainWindow::QlixMainWindow	QlixMainWindow.h	/^  QlixMainWindow(MtpSubSystem*);$/;"	p	class:QlixMainWindow	access:public
+QlixMainWindow::_deviceChooser	QlixMainWindow.h	/^  DeviceChooser* _deviceChooser;$/;"	m	class:QlixMainWindow	access:private
+QlixMainWindow::_subSystem	QlixMainWindow.h	/^  MtpSubSystem* _subSystem;$/;"	m	class:QlixMainWindow	access:private
+__DEVICECHOOSER__	DeviceChooser.h	2;"	d
+__QLIXMAINWINDOW__	QlixMainWindow.h	2;"	d
+_chooserGroupBox	DeviceChooser.h	/^  QGroupBox*  _chooserGroupBox;$/;"	m	class:DeviceChooser	access:private
+_chooserLayout	DeviceChooser.h	/^  QGridLayout* _chooserLayout;$/;"	m	class:DeviceChooser	access:private
+_deviceButtons	DeviceChooser.h	/^  QButtonVector _deviceButtons;$/;"	m	class:DeviceChooser	access:private
+_deviceChooser	QlixMainWindow.h	/^  DeviceChooser* _deviceChooser;$/;"	m	class:QlixMainWindow	access:private
+_devices	DeviceChooser.h	/^  LIBMTP_mtpdevice_t* _devices;$/;"	m	class:DeviceChooser	access:private
+_subSystem	QlixMainWindow.h	/^  MtpSubSystem* _subSystem;$/;"	m	class:QlixMainWindow	access:private

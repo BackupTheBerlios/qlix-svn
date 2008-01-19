@@ -1,0 +1,62 @@
+!_TAG_FILE_FORMAT	2	/extended format; --format=1 will not append ;" to lines/
+!_TAG_FILE_SORTED	1	/0=unsorted, 1=sorted, 2=foldcase/
+!_TAG_PROGRAM_AUTHOR	Darren Hiebert	/dhiebert@users.sourceforge.net/
+!_TAG_PROGRAM_NAME	Exuberant Ctags	//
+!_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
+!_TAG_PROGRAM_VERSION	5.6	//
+Initialize	MtpSubSystem.cpp	/^void MtpSubSystem::Initialize()$/;"	f	class:MtpSubSystem
+Initialize	MtpSubSystem.h	/^  void Initialize();$/;"	p	class:MtpSubSystem	access:public
+MtpDevice	MtpDevice.cpp	/^MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device) $/;"	f	class:MtpDevice
+MtpDevice	MtpDevice.h	/^  MtpDevice(LIBMTP_mtpdevice_t* in_);$/;"	p	class:MtpDevice	access:public
+MtpDevice	MtpDevice.h	/^class MtpDevice$/;"	c
+MtpDevice::MtpDevice	MtpDevice.cpp	/^MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device) $/;"	f	class:MtpDevice
+MtpDevice::MtpDevice	MtpDevice.h	/^  MtpDevice(LIBMTP_mtpdevice_t* in_);$/;"	p	class:MtpDevice	access:public
+MtpDevice::_batteryLevelSupport	MtpDevice.h	/^  bool _batteryLevelSupport;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_currentBatteryLevel	MtpDevice.h	/^  count_t _currentBatteryLevel;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_device	MtpDevice.h	/^  LIBMTP_mtpdevice_t* _device;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_errorStack	MtpDevice.h	/^  vector <wstring> _errorStack;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_maxBatteryLevel	MtpDevice.h	/^  count_t _maxBatteryLevel;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_modelName	MtpDevice.h	/^  wstring _modelName;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_name	MtpDevice.h	/^  wstring _name;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_serialNumber	MtpDevice.h	/^  wstring _serialNumber;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_supportedFiletypes	MtpDevice.h	/^  vector <wstring> _supportedFiletypes;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_syncPartner	MtpDevice.h	/^  wstring _syncPartner;$/;"	m	class:MtpDevice	access:private
+MtpDevice::_version	MtpDevice.h	/^  wstring _version;$/;"	m	class:MtpDevice	access:private
+MtpDevice::~MtpDevice	MtpDevice.cpp	/^MtpDevice::~MtpDevice()$/;"	f	class:MtpDevice
+MtpDevice::~MtpDevice	MtpDevice.h	/^  ~MtpDevice();$/;"	p	class:MtpDevice	access:public
+MtpSubSystem	MtpSubSystem.cpp	/^MtpSubSystem::MtpSubSystem()$/;"	f	class:MtpSubSystem
+MtpSubSystem	MtpSubSystem.h	/^  MtpSubSystem();$/;"	p	class:MtpSubSystem	access:public
+MtpSubSystem	MtpSubSystem.h	/^class MtpSubSystem$/;"	c
+MtpSubSystem::Initialize	MtpSubSystem.cpp	/^void MtpSubSystem::Initialize()$/;"	f	class:MtpSubSystem
+MtpSubSystem::Initialize	MtpSubSystem.h	/^  void Initialize();$/;"	p	class:MtpSubSystem	access:public
+MtpSubSystem::MtpSubSystem	MtpSubSystem.cpp	/^MtpSubSystem::MtpSubSystem()$/;"	f	class:MtpSubSystem
+MtpSubSystem::MtpSubSystem	MtpSubSystem.h	/^  MtpSubSystem();$/;"	p	class:MtpSubSystem	access:public
+MtpSubSystem::ReleaseDevices	MtpSubSystem.cpp	/^void MtpSubSystem:: ReleaseDevices()$/;"	f	class:MtpSubSystem
+MtpSubSystem::ReleaseDevices	MtpSubSystem.h	/^  void ReleaseDevices();$/;"	p	class:MtpSubSystem	access:public
+MtpSubSystem::_devList	MtpSubSystem.h	/^  vector <MtpDevice*> _devList;$/;"	m	class:MtpSubSystem	access:private
+MtpSubSystem::_deviceList	MtpSubSystem.h	/^  LIBMTP_mtpdevice_t* _deviceList;$/;"	m	class:MtpSubSystem	access:public
+MtpSubSystem::_errorList	MtpSubSystem.h	/^  MTPErrorVector _errorList;$/;"	m	class:MtpSubSystem	access:public
+MtpSubSystem::~MtpSubSystem	MtpSubSystem.cpp	/^MtpSubSystem::~MtpSubSystem()$/;"	f	class:MtpSubSystem
+MtpSubSystem::~MtpSubSystem	MtpSubSystem.h	/^  ~MtpSubSystem();$/;"	p	class:MtpSubSystem	access:public
+ReleaseDevices	MtpSubSystem.cpp	/^void MtpSubSystem:: ReleaseDevices()$/;"	f	class:MtpSubSystem
+ReleaseDevices	MtpSubSystem.h	/^  void ReleaseDevices();$/;"	p	class:MtpSubSystem	access:public
+__MTPDEVICE__	MtpDevice.h	2;"	d
+__MTPSUBSYSTEM__	MtpSubSystem.h	2;"	d
+_batteryLevelSupport	MtpDevice.h	/^  bool _batteryLevelSupport;$/;"	m	class:MtpDevice	access:private
+_currentBatteryLevel	MtpDevice.h	/^  count_t _currentBatteryLevel;$/;"	m	class:MtpDevice	access:private
+_devList	MtpSubSystem.h	/^  vector <MtpDevice*> _devList;$/;"	m	class:MtpSubSystem	access:private
+_device	MtpDevice.h	/^  LIBMTP_mtpdevice_t* _device;$/;"	m	class:MtpDevice	access:private
+_deviceList	MtpSubSystem.h	/^  LIBMTP_mtpdevice_t* _deviceList;$/;"	m	class:MtpSubSystem	access:public
+_errorList	MtpSubSystem.h	/^  MTPErrorVector _errorList;$/;"	m	class:MtpSubSystem	access:public
+_errorStack	MtpDevice.h	/^  vector <wstring> _errorStack;$/;"	m	class:MtpDevice	access:private
+_maxBatteryLevel	MtpDevice.h	/^  count_t _maxBatteryLevel;$/;"	m	class:MtpDevice	access:private
+_modelName	MtpDevice.h	/^  wstring _modelName;$/;"	m	class:MtpDevice	access:private
+_name	MtpDevice.h	/^  wstring _name;$/;"	m	class:MtpDevice	access:private
+_serialNumber	MtpDevice.h	/^  wstring _serialNumber;$/;"	m	class:MtpDevice	access:private
+_supportedFiletypes	MtpDevice.h	/^  vector <wstring> _supportedFiletypes;$/;"	m	class:MtpDevice	access:private
+_syncPartner	MtpDevice.h	/^  wstring _syncPartner;$/;"	m	class:MtpDevice	access:private
+_version	MtpDevice.h	/^  wstring _version;$/;"	m	class:MtpDevice	access:private
+~MtpDevice	MtpDevice.cpp	/^MtpDevice::~MtpDevice()$/;"	f	class:MtpDevice
+~MtpDevice	MtpDevice.h	/^  ~MtpDevice();$/;"	p	class:MtpDevice	access:public
+~MtpSubSystem	MtpSubSystem.cpp	/^MtpSubSystem::~MtpSubSystem()$/;"	f	class:MtpSubSystem
+~MtpSubSystem	MtpSubSystem.h	/^  ~MtpSubSystem();$/;"	p	class:MtpSubSystem	access:public
