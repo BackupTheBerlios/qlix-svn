@@ -30,6 +30,7 @@ void installSignalHandlers()
     sigaction(SIGQUIT, &act, 0);
     sigaction(SIGSEGV, &act, 0);
     sigaction(SIGHUP, &act, 0);
+    sigaction(SIGABRT, &act, 0);
     sigaction(SIGKILL, &act, 0);
 }
 

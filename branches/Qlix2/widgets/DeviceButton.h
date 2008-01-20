@@ -6,7 +6,9 @@
 #include <QString>
 #include <QSpacerItem>
 #include "mtp/MtpDevice.h"
-
+/** 
+ * @class DeviceButton Class that displays the device icon and auto connect box
+*/
 class DeviceButton : public QVBoxLayout
 {
   Q_OBJECT

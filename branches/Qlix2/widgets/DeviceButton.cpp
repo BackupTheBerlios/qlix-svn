@@ -1,5 +1,11 @@
 #include "widgets/DeviceButton.h"
 
+/**
+ * Creates a DeviceButton object
+ * @param in_device The device that this button represents
+ * @param parent The parent widget
+ * @return Returns a DeviceButton object
+ */
 DeviceButton::DeviceButton (MtpDevice* in_device, QWidget* parent)
 {
   _device = in_device;
@@ -27,21 +33,32 @@ DeviceButton::DeviceButton (MtpDevice* in_device, QWidget* parent)
                                             QSizePolicy::Expanding);
   addItem(temp);
 
-
+  in_device->CreateObjectStructure();
   setupConnections();
 }
 
+/**
+ * Removes checked state of the check box if it is checked
+ */
 void DeviceButton::RemoveCheck()
 {
-  _checkBox->setCheckState(Qt::Unchecked);
+  if (_checkBox->checkState() == Qt::Checked)
+    _checkBox->setCheckState(Qt::Unchecked);
 }
 
-//we can do better than this..
+/**
+ * Setup up the widgets internal connections
+ * See also stateChanged()
+ */
 void DeviceButton::setupConnections()
 {
   connect(_checkBox, SIGNAL(stateChanged(int)), this, SLOT(stateChanged (int)) );
 }
 
+/**
+ * Private slot that is called when the checkbox is checked 
+ * See also setupConnections()
+ */
 void DeviceButton::stateChanged(int in)
 {
   if (in == Qt::Checked)
