@@ -33,7 +33,6 @@ DeviceButton::DeviceButton (MtpDevice* in_device, QWidget* parent)
                                             QSizePolicy::Expanding);
   addItem(temp);
 
-  in_device->CreateObjectStructure();
   setupConnections();
 }
 

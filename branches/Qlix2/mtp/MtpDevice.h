@@ -30,6 +30,8 @@ public:
 
   void SetProgressFunction(LIBMTP_progressfunc_t );
 
+  void ClearObjectMappings();
+
 private:
   LIBMTP_mtpdevice_t* _device;
   char* _name;
@@ -42,18 +44,29 @@ private:
   bool _batteryLevelSupport;
   LIBMTP_progressfunc_t _progressFunc;
 
-
   map<uint32_t, MTP::GenericObject*> _objectMap;
   void processErrorStack();
 
   vector <string> _errorStack;
-  /* not used 
-  vector <wstring> _supportedFileTypes;
-  vector <MTP::folder> _folders;
-  vector <MTP::files> _files;
-  vector <MTP::tracks> _tracks;
-  vector <MTP::album> _albums;
-  vector <MTP::playlist> _playlists;
-  */
+  vector <string> _supportedFileTypes;
+  vector <MTP::GenericObject*> _crossLinked;
+  vector <MTP::Folder*> _rootFolders;
+  vector <MTP::File*> _rootFiles;
+
+  vector <MTP::File*> _files;
+  vector <MTP::Track*> _tracks;
+  vector <MTP::Album*> _albums;
+  vector <MTP::Playlist*> _playlists;
+
+  //Directory structure functions
+  void createFolderStructure(MTP::Folder*);
+  void createFileStructure();
+  void createTrackStructure();
+
+
+
+  //Debug functions
+  void dbgPrintSupportedFileTypes();
+  void dbgPrintFolders(MTP::Folder*, count_t);
 };
 #endif 

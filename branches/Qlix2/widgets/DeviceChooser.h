@@ -5,6 +5,8 @@
 #include <QGroupBox>
 #include <QToolButton>
 #include <QSpacerItem>
+#include <QGridLayout>
+#include <QLabel>
 #include <libmtp.h>
 #include "types.h"
 #include <QDebug>
@@ -22,14 +24,21 @@ public:
 
 public slots:
   void ExclusivelySelected(DeviceButton*); 
+  void Reinitialize();
 
 private:
 
   void setupConnections();
+  void initialize();
+
+  QGridLayout* _noDeviceWidget;
+  void createNoDeviceWidget();
+
+
   QGridLayout* _chooserLayout;
   QGroupBox*  _chooserGroupBox;
 
   QButtonVector _deviceButtons;
-  LIBMTP_mtpdevice_t* _devices;
+  MtpSubSystem* _subsystem;
 };
 #endif

@@ -8,6 +8,7 @@
         <file>pixmaps/folder.png</file>
         <file>pixmaps/rootDevice.png</file>
         <file>pixmaps/miscDev.png</file>
+        <file>pixmaps/noDevice.png</file>
     </qresource>
 </RCC>
 

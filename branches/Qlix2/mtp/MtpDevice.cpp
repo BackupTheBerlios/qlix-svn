@@ -1,6 +1,6 @@
 //TODO Add callback feature
-//TODO Add sample data feature
-//TODO Add supported file types
+//TODO Add/Test sample data feature
+//TODO Add playlist feature
 #include "MtpDevice.h"
 /**
  * Creates a MtpDevice
@@ -30,7 +30,6 @@ MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)
   ret = 0;
 
 
-/* not the correct format..
   uint16_t count = 0;
   uint16_t* types;
   ret = LIBMTP_Get_Supported_Filetypes(_device, &types, &count);
@@ -38,19 +37,19 @@ MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)
   {
     for (count_t i =0; i < count; i++)
     {
-      //char* s( (wchar_t*)types[i]);
+      char const* str;
+      str = LIBMTP_Get_Filetype_Description( (LIBMTP_filetype_t)types[i] );
+      string s(str);
       _supportedFileTypes.push_back(s);
     }
   }
   if (types)
     free(types);
-    */
 }
 
 /**
  * Releases the wrapped device  
  */
-
 MtpDevice::~MtpDevice() 
 {
   if(_device)
@@ -88,6 +87,8 @@ MtpDevice::~MtpDevice()
     delete _modelName;
     _modelName = NULL;
   }
+
+  ClearObjectMappings();
 }
 
 /**
@@ -187,13 +188,24 @@ void MtpDevice::CreateObjectStructure()
   LIBMTP_file_t* fileRoot = LIBMTP_Get_Filelisting(_device);
   while (fileRoot)
   {
+    //we should be careful to check the map's size before we check for 
+    //crosslinks
     count_t size = _objectMap.size();
-    MTP::File* currentFile = new MTP::File(fileRoot, NULL);
-    _objectMap[currentFile->GetID()] = currentFile; 
+    LIBMTP_filesampledata_t temp;
+    LIBMTP_Get_Representative_Sample(_device, fileRoot->item_id, &temp); 
 
-    //assert that we increase in size by one (and thus haven't overwritten 
-    //a pervious entry
-    assert(_objectMap.size() == size+1);
+    MTP::File* currentFile = new MTP::File(fileRoot, temp);
+    _files.push_back(currentFile);
+    MTP::GenericObject* previous = _objectMap[currentFile->ID()];
+    _objectMap[currentFile->ID()] = currentFile; 
+
+    //crosslink check
+    if(_objectMap.size() != size+1)
+    {
+      assert(previous);
+      _crossLinked.push_back(previous);
+      _crossLinked.push_back( currentFile);
+    }
     fileRoot = fileRoot->next;
   }
 
@@ -202,16 +214,16 @@ void MtpDevice::CreateObjectStructure()
   {
     count_t size = _objectMap.size();
     MTP::Track* currentTrack = new MTP::Track(trackRoot);
-    MTP::GenericObject* temp = _objectMap[currentTrack->GetID()];
-    MTP::File* temp2 = (MTP::File*) temp;
-    _objectMap[currentTrack->GetID()] = currentTrack; 
+    _tracks.push_back(currentTrack);
+    MTP::GenericObject* previous = _objectMap[currentTrack->ID()];
+    _objectMap[currentTrack->ID()] = currentTrack; 
 
-    //assert that we didn't overwrite a pervious entry
-    if(_objectMap.size() != size+1){
+    //crosslink check
+    if(_objectMap.size() != size+1)
     {
-      std::cout <<"objectsize: " << _objectMap.size() << "should be: " << size+1 << std::endl;
-      std::cout<< "object id is: " << currentTrack->GetID();
-      assert(false);
+      assert(previous);
+      _crossLinked.push_back(previous);
+      _crossLinked.push_back( currentTrack );
     }
     trackRoot = trackRoot->next;
   }
@@ -221,43 +233,207 @@ void MtpDevice::CreateObjectStructure()
   {
     count_t size = _objectMap.size();
     MTP::Album* currentAlbum = new MTP::Album(albumRoot);
-    _objectMap[currentAlbum->GetID()] = currentAlbum; 
+    _objectMap[currentAlbum->ID()] = currentAlbum; 
+    MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
 
-    //assert that we didn't overwrite a pervious entry
-    assert(_objectMap.size() == size+1);
+    //crosslink check
+    if(_objectMap.size() != size+1)
+    {
+      assert(previous);
+      _crossLinked.push_back(previous);
+      _crossLinked.push_back( currentAlbum );
+    }
+
     albumRoot = albumRoot->next;
   }
 
-  LIBMTP_folder_t* folderRoot= LIBMTP_Get_Folder_List(_device);
-  LIBMTP_folder_t* sibling;
-  }
-  /* tobe written
+  createFolderStructure(NULL);
+  createFileStructure();
+  createTrackStructure();
+  cout << "Crosslinked entries: " << _crossLinked.size() << endl;
+#ifdef QLIX_DEBUG
+  dbgPrintSupportedFileTypes();
+  dbgPrintFolders(NULL, 0);
+#endif
+}
+
+/**
+ * Recursively builds the directory structure
+ */
+void MtpDevice::createFolderStructure(MTP::Folder* in_root)
+{
+  if (!_device)
+    return;
+  vector<MTP::Folder*> curLevelFolders;
+  LIBMTP_folder_t* folderRoot;
+  if (!in_root)
+    folderRoot= LIBMTP_Get_Folder_List(_device);
+  else
+    folderRoot = in_root->RawFolder()->child;
+
   while (folderRoot)
   {
-    sibling = folderRoot->sibling;
-    while (sibling)
+    count_t size = _objectMap.size();
+    //if there is a parent, set the new folder's parent. And add to the 
+    //parent's childlist
+    MTP::Folder* temp;
+    if(in_root)
     {
-      count_t size = _objectMap.size();
-      MTP::Folder* currentFolder = new MTP::Folder(sibling);
-      _objectMap[currentFolder->GetID()] = currentFolder; 
-
-      //assert that we didn't overwrite a pervious entry
-      assert(_objectMap.size() == size+1);
-      folderRoot = folderRoot->sibling;
+      temp =  new MTP::Folder(folderRoot, in_root);
+      in_root->AddChildFolder(temp);
+    }
+    else //else set the child's parent to NULL indicating its at the root
+    {
+      temp =  new MTP::Folder(folderRoot, NULL);
+      //add to the root level folder
+      _rootFolders.push_back(temp);
     }
 
-    while (folderRoot)
-    {
-      count_t size = _objectMap.size();
-      MTP::Folder* currentFolder = new MTP::Folder(folderRoot);
-      _objectMap[currentFolder->GetID()] = currentFolder; 
+    //add this folder to the list of folders at this level
+    curLevelFolders.push_back(temp);
+    
+    //previous is used if there is a crosslinked entry
+    MTP::GenericObject* previous = _objectMap[temp->ID()];
+    _objectMap[temp->ID()] = temp; 
 
-      //assert that we didn't overwrite a pervious entry
-      assert(_objectMap.size() == size+1);
-      folderRoot = folderRoot->child;
+    //crosslink check
+    if(_objectMap.size() != size+1)
+    {
+      assert(previous);
+      _crossLinked.push_back(previous);
+      _crossLinked.push_back(temp);
     }
+    folderRoot = folderRoot->sibling;
   }
-  //Now iterate over every album and folder adding their respective children 
-  //by using the map 
-  */
+  for (count_t i =0; i < curLevelFolders.size(); i++)
+      createFolderStructure(curLevelFolders[i]);
+}
+
+/**
+ * Prints the file types supported by this device
+ */
+void MtpDevice::dbgPrintSupportedFileTypes()
+{
+  cout << "Supported file types: ";
+  if (_supportedFileTypes.size() == 0)
+    cout << "none!";
+  cout << endl;
+
+  for (count_t i =0; i < _supportedFileTypes.size(); i++)
+    cout << _supportedFileTypes[i] << endl;
+}
+
+/**
+ * Recursively prints the folders discovered
+ * @param root the current level's root folder
+ * @level the current depth of the traversal used for alignment
+ */
+void MtpDevice::dbgPrintFolders(MTP::Folder* root, count_t level)
+{
+  if (root == NULL)
+  {
+    for (count_t i =0; i < _rootFolders.size(); i++)
+    {
+      cout << _rootFolders[i]->Name() << endl;
+      dbgPrintFolders(_rootFolders[i], 1);
+    }
+    return;
+  }
+
+  for (count_t i = 0; i < root->FolderCount(); i++)
+  {
+    for (count_t j = 0; j < level; j++)
+      cout << "  ";
+    MTP::Folder* temp = root->SubFolder(i); 
+    cout << temp->Name() << endl;
+    dbgPrintFolders(temp, level+1);
+  }
+}
+/**
+ * Frees all memory used by instantiated objects
+ */
+void MtpDevice::ClearObjectMappings()
+{
+  for (count_t i =0; i < _crossLinked.size(); i++)
+  {
+    //used for sanity checking make sure that when we delete files we delete
+    //from the crosslinked list as well
+    count_t size = _objectMap.size();
+    MTP::GenericObject* current = _crossLinked[i];
+    MTP::GenericObject* mappedObject = _objectMap[current->ID()];
+    //sanity make sure the map hasn't increased in size..
+    assert(_objectMap.size() == size);
+
+    if (mappedObject != current && current)
+      delete current;
+  }
+
+  map<uint32_t, MTP::GenericObject*>::iterator iter;
+  for (iter = _objectMap.begin(); iter != _objectMap.end(); iter++)
+  {
+    if(iter->second); //make sure its not NULL..
+      delete iter->second;
+  }
+  _objectMap.clear();
+  _crossLinked.clear();
+  _rootFolders.clear();
+  _rootFiles.clear();
+  _files.clear();
+  _tracks.clear();
+  _albums.clear();
+  _playlists.clear();
+}
+
+/**
+ * Iterates over all the files and adds them to their parent folder
+ */
+void MtpDevice::createFileStructure()
+{
+  MTP::GenericObject* obj;
+  MTP::Folder* parentFolder;
+  for (count_t i =0; i < _files.size(); i++)
+  {
+    MTP::File* temp = _files[i];
+    //sanity check
+    count_t size = _objectMap.size();
+    if (temp->ParentID() == 0)
+    {
+      _rootFiles.push_back(temp);
+      continue;
+    }
+    obj =  _objectMap[temp->ParentID()];
+    assert(_objectMap.size() == size);
+    if (obj->Type() != MtpFolder)
+    {
+      cerr << "Serious crosslink problem: could not get parent folder: " << temp->ParentID() << endl;
+      continue;
+    }
+    parentFolder = (MTP::Folder*) obj;
+    parentFolder->AddChildFile(temp);
+  }
+}
+
+/**
+ * Iterates over all the tracks and adds them to their parent album 
+ */
+void MtpDevice::createTrackStructure()
+{
+  MTP::GenericObject* obj;
+  MTP::Album* parentAlbum;
+  for (count_t i =0; i < _tracks.size(); i++)
+  {
+    MTP::Track* temp = _tracks[i];
+    //sanity check
+    assert(temp->ParentID() != 0);
+    count_t size = _objectMap.size();
+    obj =  _objectMap[temp->ParentID()];
+    assert(_objectMap.size() == size);
+    if (obj->Type() != MtpAlbum)
+    {
+      cerr << "Serious crosslink problem: could not get parent folder: " << temp->ParentID() << endl;
+      continue;
+    }
+    parentAlbum = (MTP::Album*) obj;
+    parentAlbum->AddChildTrack(temp);
+  }
 }
