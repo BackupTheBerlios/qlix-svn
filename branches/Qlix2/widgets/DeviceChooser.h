@@ -21,6 +21,7 @@
 
 /* This class displays the device chooser widget */
 typedef QVector<DeviceButton*> QButtonVector;
+
 class  DeviceChooser : public QScrollArea
 {
 Q_OBJECT
@@ -36,6 +37,8 @@ private slots:
   void deviceCountChanged();
 
 private:
+  //private forward declration
+  class NoDevice;
 
   void addButton(DeviceButton*);
   void setupConnections();
@@ -44,24 +47,50 @@ private:
   void initialize();
   void createNoDeviceWidget();
   void addButtonToLayout(DeviceButton*);
-  void showNoDevices();
+  void showNoDeviceWidget();
+  void hideNoDeviceWidget();
 
 
   QVector <QMtpDevice*> _devices;
   /* Used when there are no devices */
-  QVector <QWidget*> _noDeviceLayoutList;
-  QSpacerItem* _bottomNoDeviceSpacer;
-  QSpacerItem* _topNoDeviceSpacer;
+  NoDevice* _noDeviceLayout;
 
   /* Used when devices are detected */
   QButtonVector _deviceButtons;
   QGridLayout* _chooserLayout;
   QGroupBox*  _chooserGroupBox;
 
-  //Used to figure out if the slot deviceCountChanged()
-  //has been called atleast once 
-  bool _initialized;
-  count_t _deviceCount;
+  /**
+  * @class A private class to display the NoDevice Widget
+  */
+  class NoDevice : public QWidget 
+  {
+    public:
+    NoDevice(QWidget* parent = NULL)
+    {
+      _layout = new QGridLayout();
+      _top = new QSpacerItem(10, 10, QSizePolicy::Maximum,
+                                              QSizePolicy::Expanding);
+      _bottom = new QSpacerItem(10, 10, QSizePolicy::Maximum,
+                                              QSizePolicy::Expanding);
+      _text = new QLabel(QString("No devices detected!"));
 
+      _image = new QLabel();
+      _image->setPixmap(QPixmap(":/pixmaps/noDevice.png"));
+      _layout->addItem(_top, 0, 0, 1, -1);
+      _layout->addWidget(_text, 1, 0, 1, -1, Qt::AlignCenter);
+      _layout->addWidget(_image, 2, 0, 1, -1, Qt::AlignCenter);
+      _layout->addItem(_bottom, 3, 0, 1, -1);
+      setLayout(_layout);
+    } 
+
+    private:
+    QGridLayout* _layout;
+    QSpacerItem* _top;
+    QSpacerItem* _bottom;
+    QLabel* _text;
+    QLabel* _image;
+
+  };
 };
 #endif

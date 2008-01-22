@@ -1,10 +1,8 @@
 #include "widgets/DeviceChooser.h"
 
-DeviceChooser::DeviceChooser(QWidget* parent): _initialized(false), 
-                                               _deviceCount(0)
+DeviceChooser::DeviceChooser(QWidget* parent)
 {
   createNoDeviceWidget();
-
   initialize();
 }
 
@@ -22,7 +20,7 @@ void DeviceChooser::initialize()
   QScrollArea::setWidgetResizable(true);
 
   QScrollArea::setLayout(_chooserLayout);
-  showNoDevices();
+  showNoDeviceWidget();
   return;
 }
 
@@ -105,7 +103,7 @@ void DeviceChooser::Reinitialize()
  */
 void DeviceChooser::AddDevice(QMtpDevice* in_device)
 {
-  return;
+  hideNoDeviceWidget();
   _devices.push_back(in_device);
   DeviceButton* newDevice = new DeviceButton(in_device);
   _deviceButtons.push_back(newDevice);
@@ -134,27 +132,17 @@ void DeviceChooser::AddDevice(QMtpDevice* in_device)
 
 void DeviceChooser::createNoDeviceWidget()
 {
-  _topNoDeviceSpacer = new QSpacerItem(10, 10, QSizePolicy::Maximum,
-                                           QSizePolicy::Expanding);
-
-  QLabel* text = new QLabel(QString("No devices detected!"));
-
-  QLabel* image = new QLabel();
-  image->setPixmap(QPixmap(":/pixmaps/noDevice.png"));
-
-  _bottomNoDeviceSpacer = new QSpacerItem(10, 10, QSizePolicy::Maximum,
-                                              QSizePolicy::Expanding);
-
-  _noDeviceLayoutList.push_back(text);
-  _noDeviceLayoutList.push_back(image);
+  _noDeviceLayout = new NoDevice();
 }
 
-void DeviceChooser::showNoDevices()
+void DeviceChooser::showNoDeviceWidget()
 {
-  _chooserLayout->addItem(_topNoDeviceSpacer, 0, 0, -1, 1);
-  _chooserLayout->addWidget(_noDeviceLayoutList[0], 1, 0, -1, 1);
-  _chooserLayout->addWidget(_noDeviceLayoutList[1], 2, 0, -1, 1);
-  _chooserLayout->addItem(_bottomNoDeviceSpacer,3,0, -1, 1);
+  _chooserLayout->addWidget(_noDeviceLayout, 0, 0, -1, -1);
+}
+void DeviceChooser::hideNoDeviceWidget()
+{
+  _chooserLayout->removeWidget(_noDeviceLayout);
+  _noDeviceLayout->hide();
 }
 
 /*

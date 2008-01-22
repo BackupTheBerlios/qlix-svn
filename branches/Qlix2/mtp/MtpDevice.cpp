@@ -1,6 +1,7 @@
 //TODO Add callback feature
 //TODO Add/Test sample data feature
 //TODO Add playlist feature
+//TODO Track structure creation is faulty
 #include "MtpDevice.h"
 /**
  * Creates a MtpDevice
@@ -271,6 +272,7 @@ void MtpDevice::createObjectStructure()
   }
 
   LIBMTP_album_t* albumRoot= LIBMTP_Get_Album_List(_device);
+  count_t crossLinkCount = 0;
   while (albumRoot)
   {
     count_t size = _objectMap.size();
@@ -279,15 +281,18 @@ void MtpDevice::createObjectStructure()
     MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
 
     //crosslink check
+    //coun
     if(_objectMap.size() != size+1)
     {
       assert(previous);
       _crossLinked.push_back(previous);
       _crossLinked.push_back( currentAlbum );
+      crossLinkCount++;
     }
 
     albumRoot = albumRoot->next;
   }
+  cerr << "Album cross link count: " << crossLinkCount << endl;
 
   createFolderStructure(NULL);
   createFileStructure();
@@ -481,7 +486,7 @@ void MtpDevice::createTrackStructure()
     assert(_objectMap.size() == size);
     if (obj->Type() != MtpAlbum)
     {
-      cerr << "Serious crosslink problem: could not get parent folder: " << temp->ParentID() << endl;
+      cerr << "Serious crosslink problem: could not get parent album: " << temp->ParentID() << endl;
       continue;
     }
     parentAlbum = (MTP::Album*) obj;
