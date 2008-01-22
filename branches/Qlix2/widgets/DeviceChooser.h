@@ -41,7 +41,7 @@ private:
   class NoDevice;
 
   void addButton(DeviceButton*);
-  void setupConnections();
+  void setupConnections(count_t idx);
   // Connects the WatchDog to this widget to inform it of updates
   void setupWatchDogConnections();
   void initialize();

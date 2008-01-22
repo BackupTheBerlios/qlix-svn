@@ -1,11 +1,15 @@
 #include "widgets/DeviceChooser.h"
-
+/*
+ * Creates a new DeviceChooser widget by first creatng a noDevice widget
+ * and then creating container widgets for detected devices
+ * Care should be taken with the no device widget as it is destroyed after
+ * devices are added and should be recreated when devices are removed..
+ */
 DeviceChooser::DeviceChooser(QWidget* parent)
 {
   createNoDeviceWidget();
   initialize();
 }
-
 
 /* 
  * Initializes a button for each device detected, or displays the No devices detected scree
@@ -18,51 +22,9 @@ void DeviceChooser::initialize()
   _chooserLayout->setColumnMinimumWidth(0, 160);
 
   QScrollArea::setWidgetResizable(true);
-  showNoDeviceWidget();
+  QScrollArea::setWidget(_noDeviceLayout);
   return;
 }
-
-/*
-
-  count_t i; 
-  count_t row =0; 
-
-#ifdef MULTIPLE_DEVICES
-    if (count == 1)
-      count = 7;
-  _deviceButtons.resize(count);
-#endif
-
-  for(i = 0; i < count; i++)
-  {
-    if( i != 0 && i %3 == 0)
-      row++;
-    qDebug() << "Detected %d devices" << count << " Pass: " << i;
-#ifdef MULTIPLE_DEVICES
-    MtpDevice* temp = _subsystem->GetDevice(0);
-#else
-    MtpDevice* temp = _subsystem->GetDevice(i);
-#endif
-
-    _deviceButtons[i] = new DeviceButton(temp);
-    _chooserLayout->addLayout(_deviceButtons[i], row, i%3, 1, 1);
-  }
-
-  QScrollArea::setWidget(_chooserGroupBox);
-  QScrollArea::setWidgetResizable(true);
-
-#ifdef MULTIPLE_DEVICES
-  if (count > 0)
-  {
-    _subsystem->GetDevice(0)->CreateObjectStructure();
-    _subsystem->GetDevice(0)->ClearObjectMappings();
-    _subsystem->GetDevice(0)->CreateObjectStructure();
-  }
-#endif
-  setupConnections();
-}
-
-*/
 
 /**
  * This slot iterates over all buttons and unchecks those that are not equal
@@ -77,23 +39,11 @@ void DeviceChooser::ExclusivelySelected(DeviceButton* selected)
       _deviceButtons[i]->RemoveCheck();
   }
 }
-
+/*
+ * A function stub that might be needed for later use
+ */
 void DeviceChooser::Reinitialize()
-{
-  return;
-  /*
-  if (_deviceButtons.size() > 0 && (layout() == _noDeviceLayout) )
-  {
-      delete layout();
-      _noDeviceLayout = NULL;
-      QScrollArea::setLayout(_chooserLayout);
-      createNoDeviceWidget();
-  }
-  else
-    QScrollArea::setLayout(_noDeviceLayout);
-  update();
-  */
-}
+{ return; }
 
 /*
  * Adds a DeviceButton based on the passed device to this container widget
@@ -123,24 +73,16 @@ void DeviceChooser::AddDevice(QMtpDevice* in_device)
   if (_devices.size() == 1)
     QScrollArea::setWidget(_chooserGroupBox);
   QScrollArea::setWidgetResizable(true);
+  //setup connections for the last button as it was pushed to the vector
+  setupConnections(_deviceButtons.size()-1);
 }
 
-
-
+/**
+ * Creates the noDevice  widget
+ */
 void DeviceChooser::createNoDeviceWidget()
 {
   _noDeviceLayout = new NoDevice();
-}
-
-void DeviceChooser::showNoDeviceWidget()
-{
-  QScrollArea::setWidget(_noDeviceLayout);
-//  _chooserLayout->addWidget(_noDeviceLayout, 0, 0, -1, -1);
-}
-void DeviceChooser::hideNoDeviceWidget()
-{
-//  removeWidget(_noDeviceLayout);
-//  _noDeviceLayout->hide();
 }
 
 /*
@@ -150,12 +92,14 @@ void DeviceChooser::deviceCountChanged()
 { }
 
 /*
- * Connects each button's check box to the ExclusivelySelected() slot 
+ * Connects a button check box to the ExclusivelySelected() slot 
+ * @param idx the index of the button to connect
  */
-void DeviceChooser::setupConnections()
+void DeviceChooser::setupConnections(count_t idx)
 {
+  assert (idx < _deviceButtons.size());
   for (int i = 0; i < _deviceButtons.size(); i++)
-    QObject::connect(_deviceButtons[i], SIGNAL(Checked(DeviceButton*) ),
+    QObject::connect(_deviceButtons[idx], SIGNAL(Checked(DeviceButton*) ),
                      this, SLOT(ExclusivelySelected(DeviceButton* )));
 }
 

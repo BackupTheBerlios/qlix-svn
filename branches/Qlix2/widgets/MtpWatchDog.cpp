@@ -18,7 +18,8 @@ void MtpWatchDog::run()
             this, SIGNAL(NewDevice (QMtpDevice*)), Qt::QueuedConnection);
   }
   Unlock();
-
+// Currently libmtp does not support polling the device interface so for now 
+// this is allthis function does, that is, create QMtpDevices for discovered devices
 //  while (true)
 //  {  }
 }

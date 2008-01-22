@@ -60,3 +60,46 @@ void MtpDevice::createFolderStructure(Mtp::Folder* in_root)
 */
 
 
+
+/*
+
+  count_t i; 
+  count_t row =0; 
+
+#ifdef MULTIPLE_DEVICES
+    if (count == 1)
+      count = 7;
+  _deviceButtons.resize(count);
+#endif
+
+  for(i = 0; i < count; i++)
+  {
+    if( i != 0 && i %3 == 0)
+      row++;
+    qDebug() << "Detected %d devices" << count << " Pass: " << i;
+#ifdef MULTIPLE_DEVICES
+    MtpDevice* temp = _subsystem->GetDevice(0);
+#else
+    MtpDevice* temp = _subsystem->GetDevice(i);
+#endif
+
+    _deviceButtons[i] = new DeviceButton(temp);
+    _chooserLayout->addLayout(_deviceButtons[i], row, i%3, 1, 1);
+  }
+
+  QScrollArea::setWidget(_chooserGroupBox);
+  QScrollArea::setWidgetResizable(true);
+
+#ifdef MULTIPLE_DEVICES
+  if (count > 0)
+  {
+    _subsystem->GetDevice(0)->CreateObjectStructure();
+    _subsystem->GetDevice(0)->ClearObjectMappings();
+    _subsystem->GetDevice(0)->CreateObjectStructure();
+  }
+#endif
+  setupConnections();
+}
+
+*/
+
