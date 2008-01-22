@@ -17,6 +17,8 @@ public:
   MtpDevice(LIBMTP_mtpdevice_t* in_);
   ~MtpDevice();
 
+  void Initialize();
+
   char* name() const;
   char* serialNumber() const;
   char* version() const;
@@ -26,12 +28,14 @@ public:
   bool BatterLevelSupport() const;
   float BatterLevel() const;
 
-  void CreateObjectStructure();
-
   void SetProgressFunction(LIBMTP_progressfunc_t );
-
   void ClearObjectMappings();
+  void Retreive(count_t , char const * const );
 
+  count_t FileCount();
+  MTP::File* File(count_t idx);
+
+  LIBMTP_mtpdevice_t* RawDevice() const;
 private:
   LIBMTP_mtpdevice_t* _device;
   char* _name;
@@ -59,6 +63,7 @@ private:
   vector <MTP::Playlist*> _playlists;
 
   //Directory structure functions
+  void createObjectStructure();
   void createFolderStructure(MTP::Folder*);
   void createFileStructure();
   void createTrackStructure();

@@ -1,3 +1,4 @@
+//TODO error checkking when returning char* ?
 #include "mtp/MtpObject.h"
 using namespace MTP;
 namespace MTP
@@ -63,6 +64,12 @@ count_t File::ParentID() const { return _rawFile->parent_id; }
 const LIBMTP_filesampledata_t& File::SampleData() const
 {
   return _sampleData;
+}
+
+char const * File::Name() const
+{
+  //TODO error checking here?
+  return _rawFile->filename;
 }
 
 /** Creates a new Folder object

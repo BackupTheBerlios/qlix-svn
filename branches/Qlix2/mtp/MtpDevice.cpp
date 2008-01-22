@@ -10,6 +10,17 @@
 MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device) 
 {
   _device = in_device;
+
+}
+
+/**
+ * Initializes the MtpDevice and creates an internal tree structure for all
+ * MTP objects
+ */
+void MtpDevice::Initialize()
+{
+  if (!_device)
+    return;
   _progressFunc= NULL;
    _name = LIBMTP_Get_Friendlyname(_device);
 
@@ -45,8 +56,39 @@ MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)
   }
   if (types)
     free(types);
+  createObjectStructure();
 }
 
+/**
+ * Returns the number of files on the device
+ */
+count_t MtpDevice::FileCount()
+{ return _files.size(); }
+
+/**
+ * Returns the File at the given index if it exists
+ * @return the File at the given index or NULL if it is out of bounds
+ */
+MTP::File* MtpDevice::File(count_t idx)
+{ 
+  if (idx > _files.size() )
+    return NULL;
+  return _files[idx];
+}
+
+/**
+ * Retreives the object to the specificed path
+ * @param in_id the item id of the requested Mtp object
+ * @param path the path to retreive to
+ */
+void MtpDevice::Retreive(count_t in_id, char const * const path)
+{
+  if (!_device)
+    return;
+//TODO get error log
+  LIBMTP_Get_File_To_File(_device, in_id, path, NULL, NULL);
+}
+ 
 /**
  * Releases the wrapped device  
  */
@@ -181,7 +223,7 @@ void MtpDevice::SetProgressFunction(LIBMTP_progressfunc_t in_func)
  * Retrieves Tracks, Files and Albums and Folders form the devices and creates
  * a tree, storing each object's ID in _objectMap
  */
-void MtpDevice::CreateObjectStructure()
+void MtpDevice::createObjectStructure()
 {
   if (!_device)
     return;
@@ -255,6 +297,15 @@ void MtpDevice::CreateObjectStructure()
   dbgPrintSupportedFileTypes();
   dbgPrintFolders(NULL, 0);
 #endif
+}
+
+/*
+ * Returns the raw device that this object abstracts over
+ * @return the raw device
+ */
+LIBMTP_mtpdevice_t* MtpDevice::RawDevice() const
+{
+  return _device;
 }
 
 /**

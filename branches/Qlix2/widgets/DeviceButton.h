@@ -5,7 +5,7 @@
 #include <QCheckBox>
 #include <QString>
 #include <QSpacerItem>
-#include "mtp/MtpDevice.h"
+#include "widgets/QMtpDevice.h"
 /** 
  * @class DeviceButton Class that displays the device icon and auto connect box
 */
@@ -13,7 +13,7 @@ class DeviceButton : public QVBoxLayout
 {
   Q_OBJECT
 public:
-  DeviceButton(MtpDevice*, QWidget*);
+  DeviceButton(QMtpDevice*, QWidget* temp = NULL);
   void RemoveCheck();
 
 signals:
@@ -23,7 +23,7 @@ private slots:
   void stateChanged(int);
 private:
   void setupConnections();
-  MtpDevice* _device;
+  QMtpDevice* _device;
   QCheckBox* _checkBox;
   QToolButton* _button;
 };

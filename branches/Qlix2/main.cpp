@@ -17,7 +17,6 @@ MtpSubSystem _subSystem;
 int main(int argc, char* argv[])
 {
     installSignalHandlers();
-    _subSystem.Initialize(); 
     qDebug() << "Subsystem is up!";
     QApplication app(argc, argv);
     app.setStyle("Plastique");

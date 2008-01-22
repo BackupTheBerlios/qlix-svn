@@ -15,6 +15,8 @@ HEADERS += linuxsignals.h \
            mtp/MtpObject.h \
            mtp/MtpSubSystem.h \
            widgets/DeviceButton.h \
+           widgets/MtpWatchDog.h \ 
+           widgets/QMtpDevice.h \ 
            widgets/DeviceChooser.h \
            widgets/QlixMainWindow.h
 SOURCES += main.cpp \
@@ -22,12 +24,13 @@ SOURCES += main.cpp \
            mtp/MtpObject.cpp \
            mtp/MtpSubSystem.cpp \
            widgets/DeviceButton.cpp \
+           widgets/QMtpDevice.cpp \ 
+           widgets/MtpWatchDog.cpp \
            widgets/DeviceChooser.cpp \
            widgets/QlixMainWindow.cpp
 RESOURCES += Qlix.qrc
 unix {
   DEFINES += LINUX_SIGNALS
-  DEFINES += MULTIPLE_DEVICES
   DEFINES += QLIX_DEBUG
   LIBS += -lmtp
 }

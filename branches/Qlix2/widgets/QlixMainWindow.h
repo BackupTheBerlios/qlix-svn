@@ -20,8 +20,10 @@ protected:
 //  void closeEvent (QCloseEvent* eventh
 
 private:
-  MtpSubSystem* _subSystem;
+  MtpWatchDog* _watchDog;
   DeviceChooser* _deviceChooser;
+
+  void setupWatchDogConnections();
 };
 
 #endif

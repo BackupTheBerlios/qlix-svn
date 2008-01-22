@@ -5,6 +5,7 @@ using namespace std;
 typedef vector<LIBMTP_error_t> MTPErrorVector;
 typedef unsigned int count_t;
 typedef unsigned int index_t;
+typedef unsigned char ubyte;
 
 
 enum MtpObjectType

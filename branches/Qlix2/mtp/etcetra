@@ -1,0 +1,62 @@
+
+/* a much more verbose method for the function of the same name in MtpDevice.cpp
+void MtpDevice::createFolderStructure(Mtp::Folder* in_root)
+{
+  if (_device)
+    return;
+  vector<MTP::Folder*> rootFolders;
+  if (!in_root)
+  {
+    LIBMTP_folder_t* folderRoot= LIBMTP_Get_Folder_List(_device);
+    while (folderRoot)
+    {
+      count_t size = _objectMap.size();
+      MTP::Folder* temp =  new MTP::Folder(folderRoot, NULL);
+      //add this folder to the list of folders at this level
+      rootFolders.push_back(temp);
+
+      //previous is used if there is a crosslinked entry
+      MTP::GenericObject* previous = _objectMap[temp->GetID()];
+      _objectMap[temp->GetID()] = temp; 
+
+      //crosslink check
+      if(_objectMap.size() != size+1)
+      {
+        assert(previous);
+        _crossLinked.push_back(previous);
+        _crossLinked.push_back(temp);
+      }
+      folderRoot = folderRoot->sibling;
+    }
+    for (count_t i =0; i < rootFolders.size(); i++)
+      createFolderStructure(rootFolders[i]);
+  }
+  else
+  {
+    LIBMTP_folder_t* childList = in_root->RawFolder()->child;
+    while(childList)
+    {
+      count_t size = _objectMap.size();
+      MTP::Folder* temp =  new MTP::Folder(childList, in_root);
+      in_root->AddChildFolder(temp);
+
+      //previous is used if there is a crosslinked entry
+      MTP::GenericObject* previous = _objectMap[temp->GetID()];
+      _objectMap[temp->GetID()] = temp; 
+
+      //crosslink check
+      if(_objectMap.size() != size+1)
+      {
+        assert(previous);
+        _crossLinked.push_back(previous);
+        _crossLinked.push_back(temp);
+      }     
+      childList = childList->sibling;
+    }
+    for (count_t i =0; i < rootFolders.size(); i++)
+        createFolderStructure(rootFolders[i]);
+  }
+}
+*/
+
+

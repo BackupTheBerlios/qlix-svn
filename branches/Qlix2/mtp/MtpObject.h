@@ -43,6 +43,7 @@ public:
   File(LIBMTP_file_t*, const LIBMTP_filesampledata_t&);
   const LIBMTP_filesampledata_t& SampleData() const;
   count_t ParentID() const;
+  const char* Name() const;
 private:
   LIBMTP_file_t* _rawFile;
   LIBMTP_filesampledata_t _sampleData;

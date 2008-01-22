@@ -6,16 +6,16 @@
  * @param parent The parent widget
  * @return Returns a DeviceButton object
  */
-DeviceButton::DeviceButton (MtpDevice* in_device, QWidget* parent)
+DeviceButton::DeviceButton (QMtpDevice* in_device, QWidget* parent)
 {
   _device = in_device;
 
-  QString name = QString::fromUtf8(_device->name());
+  QString name = _device->Name();
   _checkBox = new QCheckBox("Connect on startup");
   _button = new QToolButton();
 
   _button->setText(name);
-  _button->setIcon(QIcon(":/pixmaps/miscDev.png"));
+  _button->setIcon(_device->Icon());
   _button->setMinimumSize(QSize(160,160));
   _button->setMaximumSize(QSize(160,160));
   _button->setIconSize(QSize(128,128));

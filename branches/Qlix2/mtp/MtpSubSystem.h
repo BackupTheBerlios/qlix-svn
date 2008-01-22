@@ -8,6 +8,7 @@
 #include <iostream>
 using namespace std;
 
+typedef vector <MtpDevice*> MtpDeviceVector;
 /** 
  * @class MtpSubSystem is a wrapper class around libmtp
 */
@@ -20,11 +21,16 @@ public:
   void Initialize();
 
   count_t DeviceCount() const;
-  MtpDevice* GetDevice(count_t);
 
-  LIBMTP_mtpdevice_t* _deviceList;
-  MTPErrorVector _errorList;
+  count_t MtpSubSystem::RawDeviceCount (MtpDeviceVector* connected, 
+                                      MtpDeviceVector* disconnected,
+                                      MtpDeviceVector* newDevice);
+  MtpDevice* Device(count_t);
+
 private:
   vector <MtpDevice*> _devList;
+  LIBMTP_mtpdevice_t* _deviceList;
+  MTPErrorVector _errorList;
+
 };
 #endif
