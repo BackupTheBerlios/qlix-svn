@@ -10,7 +10,7 @@ QMtpDevice::QMtpDevice(MtpDevice* in_device, MtpWatchDog* in_watchDog,
 }
 
 QString QMtpDevice::Name()
-{ return _name; }
+{ return  _name; }
 
 QIcon QMtpDevice::Icon()
 { return _icon; }
@@ -67,6 +67,7 @@ void QMtpDevice::initializeDeviceStructures()
   if (!_device)
     return;
   _device->Initialize();
+  _name = QString::fromUtf8(_device->Name()); 
 }
 
 /*

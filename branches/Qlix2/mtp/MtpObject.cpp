@@ -172,13 +172,28 @@ Album::Album(LIBMTP_album_t* in_album) :
 /** Adds the passed track as s subtrack to this album
  * @param in_track the track to ass as a subtrack to this folder
  */
-void Album::AddChildTrack(Track* in_track) 
+void Album::AddChildTrack(Track* in_track) {_childTracks.push_back(in_track);}
+
+/**
+ * Albums are container objects that hold a list of tracks that 
+ * reside underneath them
+ * @return the track count under this album
+ */ 
+count_t Album::TrackCount() const { return _rawAlbum->no_tracks; }
+
+/**
+ * Albums are container objects that hold a list of tracks that 
+ * reside underneath them
+ * @param idx the index of the requested track
+ * @return the track specified at the given index
+ */ 
+uint32_t Album::ChildTrack(count_t idx) const
 {
-   _childTracks.push_back(in_track); 
+  assert(idx < TrackCount());
+  return _rawAlbum->tracks[idx];
 }
 
 
-}
 /** Creates a new Playlist object
  * @param in_pl t pointer to the LIBMTP_playlist_t wrap over
  * @return a new Playlist object
@@ -187,4 +202,6 @@ Playlist::Playlist(LIBMTP_playlist_t* in_pl) :
                   GenericObject(MtpPlaylist, in_pl->playlist_id)
 {
   _rawPlaylist =  in_pl;
+}
+
 }

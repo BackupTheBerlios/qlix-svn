@@ -81,9 +81,9 @@ class Album: public GenericObject
 public:
   Album(LIBMTP_album_t*);
   count_t TrackCount() const;
-  void AddChildTrack(Track*);
+  uint32_t ChildTrack(count_t ) const;
+  void AddChildTrack(Track* );
 private:
-  count_t _trackCount;
   LIBMTP_album_t* _rawAlbum;
   std::vector <Track*> _childTracks;
 };

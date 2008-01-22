@@ -20,6 +20,7 @@ MtpSubSystem::~MtpSubSystem()
 void MtpSubSystem::Initialize()
 {
   LIBMTP_error_number_t tempNum;
+#ifndef MULTIPLE_DEVICES
   tempNum = LIBMTP_Get_Connected_Devices(&_deviceList);
   LIBMTP_mtpdevice_t* _dlist = _deviceList;
   while(_dlist)
@@ -28,6 +29,16 @@ void MtpSubSystem::Initialize()
     _devList.push_back(dev);
     _dlist = _dlist->next;
   }
+#else
+  LIBMTP_mtpdevice_t* first = LIBMTP_Get_First_Device();
+  if (first == NULL)
+    return;
+  for (int i =0; i < 7; i++)
+  {
+    MtpDevice* dev = new MtpDevice(first);
+    _devList.push_back(dev);
+  }
+#endif
 
   cout << " sub system Detected " << _devList.size() << " devices" << endl;
 }
@@ -37,15 +48,28 @@ void MtpSubSystem::Initialize()
  */
 void MtpSubSystem::ReleaseDevices()
 {
+#ifndef MULTIPLE_DEVICES
   for (count_t i = 0; i < _devList.size(); i++)
   {
     if (_devList[i])
     {
+      _devList[i]->ReleaseDevice();
       delete _devList[i];
       _devList[i] = NULL;
     }
   }
+  _devList.clear();
   _deviceList = NULL;
+#else
+  for (count_t i=0; i < _devList.size(); i++)
+  {
+    if (i == 0)
+      _devList[0]->ReleaseDevice();
+    delete _devList[i];
+    _devList[i] = NULL;
+  }
+  _devList.clear();
+#endif
 }
 
 /**

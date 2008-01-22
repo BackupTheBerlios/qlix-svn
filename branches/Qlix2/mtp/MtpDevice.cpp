@@ -1,7 +1,7 @@
 //TODO Add callback feature
 //TODO Add/Test sample data feature
 //TODO Add playlist feature
-//TODO Track structure creation is faulty
+//TODO Improve error handling
 #include "MtpDevice.h"
 /**
  * Creates a MtpDevice
@@ -11,8 +11,60 @@
 MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device) 
 {
   _device = in_device;
-
 }
+
+/**
+ * Deletes allocated objects
+ */
+MtpDevice::~MtpDevice() 
+{
+  if (_name)
+  {
+    delete _name;
+    _name = NULL;
+  }
+
+  if (_serialNumber)
+  {
+    delete _serialNumber;
+    _serialNumber = NULL;
+  }
+
+  if (_version)
+  {
+    delete _version;
+    _version = NULL;
+  }
+
+  if (_syncPartner)
+  {
+    delete _syncPartner;
+    _syncPartner = NULL;
+  }
+
+  if (_modelName)
+  {
+    delete _modelName;
+    _modelName = NULL;
+  }
+
+
+  ClearObjectMappings();
+}
+/**
+ * Release the wrapped device
+ */
+void MtpDevice::ReleaseDevice()
+{
+  if(_device)
+  {
+    LIBMTP_Release_Device(_device);
+    _device = NULL;
+  }
+}
+
+
+
 
 /**
  * Initializes the MtpDevice and creates an internal tree structure for all
@@ -90,54 +142,12 @@ void MtpDevice::Retreive(count_t in_id, char const * const path)
   LIBMTP_Get_File_To_File(_device, in_id, path, NULL, NULL);
 }
  
-/**
- * Releases the wrapped device  
- */
-MtpDevice::~MtpDevice() 
-{
-  if(_device)
-  {
-    LIBMTP_Release_Device(_device);
-    _device = NULL;
-  }
 
-  if (_name)
-  {
-    delete _name;
-    _name = NULL;
-  }
-
-  if (_serialNumber)
-  {
-    delete _serialNumber;
-    _serialNumber = NULL;
-  }
-
-  if (_version)
-  {
-    delete _version;
-    _version = NULL;
-  }
-
-  if (_syncPartner)
-  {
-    delete _syncPartner;
-    _syncPartner = NULL;
-  }
-
-  if (_modelName)
-  {
-    delete _modelName;
-    _modelName = NULL;
-  }
-
-  ClearObjectMappings();
-}
 
 /**
  * @return Returns the name of the device as a UTF8 string
  */
-char* MtpDevice::name() const
+char const * const MtpDevice::Name() const
 {
   return _name;
 }
@@ -145,7 +155,7 @@ char* MtpDevice::name() const
 /**
  * @return Returns the device serial number as a UTF8 string
  */
-char* MtpDevice::serialNumber() const
+char const * const MtpDevice::SerialNumber() const
 {
   return _serialNumber;
 }
@@ -153,7 +163,7 @@ char* MtpDevice::serialNumber() const
 /**
  * @return Returns the version of the device as a UTF8 string
  */
-char* MtpDevice::version() const
+char const * const MtpDevice::Version() const
 {
   return _version;
 }
@@ -161,7 +171,7 @@ char* MtpDevice::version() const
 /**
  * @return Returns the sync partner of the device as a UTF8 string
  */
-char* MtpDevice::syncPartner() const
+char const * const MtpDevice::SyncPartner() const
 {
   return _syncPartner;
 }
@@ -169,7 +179,7 @@ char* MtpDevice::syncPartner() const
 /**
  * @return Returns the model name of the device as a UTF8 string
  */
-char* MtpDevice::modelName() const
+char const * const MtpDevice::ModelName() const
 {
   return _modelName;
 }
@@ -470,26 +480,30 @@ void MtpDevice::createFileStructure()
 }
 
 /**
- * Iterates over all the tracks and adds them to their parent album 
+ * Iterates over all the Albums and their tracks
+ * Each track is looked up in the object map and added to the Album's vector 
+ * of tracks
  */
 void MtpDevice::createTrackStructure()
 {
   MTP::GenericObject* obj;
   MTP::Album* parentAlbum;
-  for (count_t i =0; i < _tracks.size(); i++)
+  for (count_t i =0; i < _albums.size(); i++)
   {
-    MTP::Track* temp = _tracks[i];
-    //sanity check
-    assert(temp->ParentID() != 0);
-    count_t size = _objectMap.size();
-    obj =  _objectMap[temp->ParentID()];
-    assert(_objectMap.size() == size);
-    if (obj->Type() != MtpAlbum)
+    parentAlbum = _albums[i];
+    for (count_t j = 0; j < parentAlbum->TrackCount(); j++)
     {
-      cerr << "Serious crosslink problem: could not get parent album: " << temp->ParentID() << endl;
-      continue;
+      uint32_t track_id = parentAlbum->ChildTrack(j);
+      //sanity check
+      count_t size = _objectMap.size();
+      MTP::GenericObject* obj = _objectMap[track_id];
+      assert(_objectMap.size() == size);
+      if (obj->Type() != MtpTrack)
+      {
+        cerr << "Current track: " << track_id << "is crosslinked" << endl;
+        continue;
+      }
+      parentAlbum->AddChildTrack( (MTP::Track*) obj);
     }
-    parentAlbum = (MTP::Album*) obj;
-    parentAlbum->AddChildTrack(temp);
   }
 }

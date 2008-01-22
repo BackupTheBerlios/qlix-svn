@@ -19,11 +19,11 @@ public:
 
   void Initialize();
 
-  char* name() const;
-  char* serialNumber() const;
-  char* version() const;
-  char* syncPartner() const;
-  char* modelName() const;
+  char const * const Name() const;
+  char const * const SerialNumber() const;
+  char const * const Version() const;
+  char const * const SyncPartner() const;
+  char const * const ModelName() const;
 
   bool BatterLevelSupport() const;
   float BatterLevel() const;
@@ -34,6 +34,7 @@ public:
 
   count_t FileCount();
   MTP::File* File(count_t idx);
+  void ReleaseDevice();
 
   LIBMTP_mtpdevice_t* RawDevice() const;
 private:

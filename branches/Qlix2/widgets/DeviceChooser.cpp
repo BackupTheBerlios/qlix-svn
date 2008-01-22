@@ -18,8 +18,6 @@ void DeviceChooser::initialize()
   _chooserLayout->setColumnMinimumWidth(0, 160);
 
   QScrollArea::setWidgetResizable(true);
-
-  QScrollArea::setLayout(_chooserLayout);
   showNoDeviceWidget();
   return;
 }
@@ -103,16 +101,13 @@ void DeviceChooser::Reinitialize()
  */
 void DeviceChooser::AddDevice(QMtpDevice* in_device)
 {
-  hideNoDeviceWidget();
   _devices.push_back(in_device);
   DeviceButton* newDevice = new DeviceButton(in_device);
   _deviceButtons.push_back(newDevice);
   count_t row;
   count_t col;
-  if (_deviceButtons.size() < 3)
-    row = 0;
-  else
-    row = (_deviceButtons.size() / 3) -1;
+
+  row = ((_deviceButtons.size() -1) / 3);
 
   col = (_deviceButtons.size() -1) % 3;
 
@@ -125,7 +120,9 @@ void DeviceChooser::AddDevice(QMtpDevice* in_device)
 #ifdef QLIX_DEBUG
   qDebug() << "Added a new device!";
 #endif
-  Reinitialize();
+  if (_devices.size() == 1)
+    QScrollArea::setWidget(_chooserGroupBox);
+  QScrollArea::setWidgetResizable(true);
 }
 
 
@@ -137,12 +134,13 @@ void DeviceChooser::createNoDeviceWidget()
 
 void DeviceChooser::showNoDeviceWidget()
 {
-  _chooserLayout->addWidget(_noDeviceLayout, 0, 0, -1, -1);
+  QScrollArea::setWidget(_noDeviceLayout);
+//  _chooserLayout->addWidget(_noDeviceLayout, 0, 0, -1, -1);
 }
 void DeviceChooser::hideNoDeviceWidget()
 {
-  _chooserLayout->removeWidget(_noDeviceLayout);
-  _noDeviceLayout->hide();
+//  removeWidget(_noDeviceLayout);
+//  _noDeviceLayout->hide();
 }
 
 /*
