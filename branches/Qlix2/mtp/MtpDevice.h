@@ -32,8 +32,17 @@ public:
   void ClearObjectMappings();
   void Retreive(count_t , char const * const );
 
-  count_t FileCount();
-  MTP::File* File(count_t idx);
+  count_t FileCount() const;
+  count_t AlbumCount() const;
+
+  MTP::File* File(count_t idx) const;
+  MTP::Album* Album(count_t idx) const;
+
+  count_t RootFolderCount() const;
+  count_t RootFileCount() const;
+  MTP::Folder* RootFolder(count_t idx) const;
+  MTP::File* RootFile(count_t idx) const;
+
   void ReleaseDevice();
 
   LIBMTP_mtpdevice_t* RawDevice() const;
@@ -68,7 +77,6 @@ private:
   void createFolderStructure(MTP::Folder*);
   void createFileStructure();
   void createTrackStructure();
-
 
 
   //Debug functions

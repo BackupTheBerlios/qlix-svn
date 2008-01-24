@@ -68,8 +68,12 @@ void QMtpDevice::initializeDeviceStructures()
     return;
   _device->Initialize();
   _name = QString::fromUtf8(_device->Name()); 
-}
-
+#ifdef QLIX_DEBUG
+  qDebug() << "Discovered name to be: " << _name;
+#endif
+  _albumModel = new AlbumModel(_device);
+  _dirModel = new DirModel(_device);
+} 
 /*
  * Iterates over all the devices files and tries to find devIcon.fil
  */
@@ -91,3 +95,19 @@ void QMtpDevice::findAndRetreiveDeviceIcon()
     _device->Retreive(curFile->ID(), iconPath.toLatin1());
   _icon = QIcon(QPixmap(iconPath));
 }
+
+/*
+ * Returns the AlbumModel
+ */
+AlbumModel* QMtpDevice::GetAlbumModel() const
+{
+  return _albumModel;
+}
+/*
+ * Returns the DirModel 
+ */
+DirModel* QMtpDevice::GetDirModel() const
+{
+  return _dirModel;
+}
+

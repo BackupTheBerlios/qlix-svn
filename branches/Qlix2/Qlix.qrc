@@ -9,6 +9,14 @@
         <file>pixmaps/rootDevice.png</file>
         <file>pixmaps/miscDev.png</file>
         <file>pixmaps/noDevice.png</file>
+        <file>pixmaps/albumList.png</file>
+        <file>pixmaps/track.png</file>
+        <file>pixmaps/miscAlbumCover.png</file>
+        <file>pixmaps/vline.png</file>
+        <file>pixmaps/branch-more.png</file>
+        <file>pixmaps/branch-end.png</file>
+        <file>pixmaps/branch-closed.png</file>
+        <file>pixmaps/branch-open.png</file>
     </qresource>
 </RCC>
 

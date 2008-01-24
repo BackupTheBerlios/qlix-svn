@@ -2,6 +2,7 @@
 //TODO Add/Test sample data feature
 //TODO Add playlist feature
 //TODO Improve error handling
+//TODO  Should object references returns be of const types?
 #include "MtpDevice.h"
 /**
  * Creates a MtpDevice
@@ -115,20 +116,73 @@ void MtpDevice::Initialize()
 /**
  * Returns the number of files on the device
  */
-count_t MtpDevice::FileCount()
+count_t MtpDevice::FileCount() const
 { return _files.size(); }
+
+
+/**
+ * Returns the number of folders found at the root level of the device
+ */
+count_t MtpDevice::RootFolderCount() const
+{ return _rootFolders.size(); }
+
+/**
+ * Returns the number of files found at the root level of the device
+ */
+count_t MtpDevice::RootFileCount() const
+{ return _rootFiles.size(); }
+
+/**
+ * Returns the Folder at the given index if it exists
+ * @return the Folder at the given index or NULL if it is out of bounds
+ */
+MTP::Folder* MtpDevice::RootFolder(count_t idx) const
+{ 
+  if (idx > _rootFolders.size() )
+    return NULL;
+  return _rootFolders[idx];
+}
+
+/**
+ * Returns the root File at the given index if it exists
+ * @return the root File at the given index or NULL if it is out of bounds
+ */
+MTP::File* MtpDevice::RootFile(count_t idx) const
+{ 
+  if (idx > _rootFiles.size() )
+    return NULL;
+  return _rootFiles[idx];
+}
+
+
+/**
+ * Returns the number of albums on the device
+ */
+count_t MtpDevice::AlbumCount() const
+{ return _albums.size(); }
+
 
 /**
  * Returns the File at the given index if it exists
  * @return the File at the given index or NULL if it is out of bounds
  */
-MTP::File* MtpDevice::File(count_t idx)
+MTP::File* MtpDevice::File(count_t idx) const
 { 
   if (idx > _files.size() )
     return NULL;
   return _files[idx];
 }
 
+/**
+ * Returns the Album at the given index if it exists
+ * @return the Album at the given index or NULL if it is out of bounds
+ */
+MTP::Album* MtpDevice::Album(count_t idx) const
+{ 
+  if (idx > _albums.size() )
+    return NULL;
+  return _albums[idx];
+}
 /**
  * Retreives the object to the specificed path
  * @param in_id the item id of the requested Mtp object
@@ -285,8 +339,15 @@ void MtpDevice::createObjectStructure()
   count_t crossLinkCount = 0;
   while (albumRoot)
   {
+    LIBMTP_filesampledata_t temp;
+    LIBMTP_Get_Representative_Sample(_device, albumRoot->album_id, &temp); 
+    cout << "Discovred a sample of type: " << temp.filetype << endl;
+    cout << "Discovred a sample of height: " << temp.height << " of width: "<< temp.width << " size: " << temp.size << endl;
+
     count_t size = _objectMap.size();
-    MTP::Album* currentAlbum = new MTP::Album(albumRoot);
+    MTP::Album* currentAlbum = new MTP::Album(albumRoot, temp);
+    _albums.push_back(currentAlbum);
+    currentAlbum->rowid = _albums.size();
     _objectMap[currentAlbum->ID()] = currentAlbum; 
     MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
 
@@ -308,6 +369,7 @@ void MtpDevice::createObjectStructure()
   createFileStructure();
   createTrackStructure();
   cout << "Crosslinked entries: " << _crossLinked.size() << endl;
+
 #ifdef QLIX_DEBUG
   dbgPrintSupportedFileTypes();
   dbgPrintFolders(NULL, 0);
@@ -347,12 +409,14 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root)
     {
       temp =  new MTP::Folder(folderRoot, in_root);
       in_root->AddChildFolder(temp);
+      temp->rowid = in_root->FolderCount();
     }
     else //else set the child's parent to NULL indicating its at the root
     {
       temp =  new MTP::Folder(folderRoot, NULL);
       //add to the root level folder
       _rootFolders.push_back(temp);
+      temp->rowid = _rootFolders.size();
     }
 
     //add this folder to the list of folders at this level
@@ -476,6 +540,8 @@ void MtpDevice::createFileStructure()
     }
     parentFolder = (MTP::Folder*) obj;
     parentFolder->AddChildFile(temp);
+    temp->SetParent(parentFolder);
+    cout << "Set " << parentFolder->Name() << " as parent of " << temp->Name() << endl;
   }
 }
 
@@ -493,10 +559,10 @@ void MtpDevice::createTrackStructure()
     parentAlbum = _albums[i];
     for (count_t j = 0; j < parentAlbum->TrackCount(); j++)
     {
-      uint32_t track_id = parentAlbum->ChildTrack(j);
+      uint32_t track_id = parentAlbum->ChildTrackID(j);
       //sanity check
       count_t size = _objectMap.size();
-      MTP::GenericObject* obj = _objectMap[track_id];
+      obj = _objectMap[track_id];
       assert(_objectMap.size() == size);
       if (obj->Type() != MtpTrack)
       {
@@ -507,3 +573,5 @@ void MtpDevice::createTrackStructure()
     }
   }
 }
+
+

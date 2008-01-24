@@ -51,8 +51,17 @@ void DeviceButton::RemoveCheck()
  */
 void DeviceButton::setupConnections()
 {
-  connect(_checkBox, SIGNAL(stateChanged(int)), this, SLOT(stateChanged (int)) );
+  connect(_checkBox, SIGNAL(stateChanged(int)),
+          this, SLOT(stateChanged (int)));
+  connect(_button, SIGNAL(clicked(bool)),
+          this, SLOT(buttonClicked()));
 }
+
+/**
+ * Private slot that gets called when the button is clicked
+ * it emits the Selected button
+ */
+void DeviceButton::buttonClicked() { emit Selected(_device); }
 
 /**
  * Private slot that is called when the checkbox is checked 

@@ -27,7 +27,8 @@ class  DeviceChooser : public QScrollArea
 Q_OBJECT
 public:
   DeviceChooser(QWidget*);
-
+signals:
+  void DeviceSelected(QMtpDevice* );
 public slots:
   void ExclusivelySelected(DeviceButton*); 
   void Reinitialize();

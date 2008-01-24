@@ -18,9 +18,11 @@ public:
 
 signals:
   void Checked(DeviceButton*);
+  void Selected(QMtpDevice*);
 
 private slots:
   void stateChanged(int);
+  void buttonClicked();
 private:
   void setupConnections();
   QMtpDevice* _device;

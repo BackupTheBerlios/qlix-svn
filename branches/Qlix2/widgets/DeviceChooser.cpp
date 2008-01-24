@@ -98,9 +98,10 @@ void DeviceChooser::deviceCountChanged()
 void DeviceChooser::setupConnections(count_t idx)
 {
   assert (idx < _deviceButtons.size());
-  for (int i = 0; i < _deviceButtons.size(); i++)
-    QObject::connect(_deviceButtons[idx], SIGNAL(Checked(DeviceButton*) ),
+  QObject::connect(_deviceButtons[idx], SIGNAL(Checked(DeviceButton*) ),
                      this, SLOT(ExclusivelySelected(DeviceButton* )));
+  QObject::connect(_deviceButtons[idx], SIGNAL(Selected(QMtpDevice*)),
+                   this, SIGNAL(DeviceSelected(QMtpDevice*)));
 }
 
 

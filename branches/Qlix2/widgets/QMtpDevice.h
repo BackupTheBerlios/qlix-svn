@@ -10,6 +10,9 @@
 #include "mtp/MtpDevice.h"
 #include "widgets/MtpWatchDog.h"
 #include "widgets/CommandCodes.h"
+#include "widgets/AlbumModel.h"
+#include "widgets/DirModel.h"
+
 class MtpWatchDog;
 /*
  * A threaded version of MtpDevice representing device attributes using QT 
@@ -23,6 +26,8 @@ public:
   QString Name();
   QIcon Icon();
   void IssueCommand (MtpCommand* in_command);
+  AlbumModel* GetAlbumModel() const;
+  DirModel* GetDirModel() const;
 
 signals:
   void Initialized(QMtpDevice*);
@@ -47,5 +52,7 @@ private:
   QMutex _jobLock;
   QWaitCondition _noJobsCondition;
 
+  AlbumModel* _albumModel;
+  DirModel* _dirModel;
 };
 #endif

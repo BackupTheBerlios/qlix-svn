@@ -17,7 +17,10 @@ HEADERS += linuxsignals.h \
            widgets/DeviceButton.h \
            widgets/MtpWatchDog.h \ 
            widgets/QMtpDevice.h \ 
+           widgets/AlbumModel.h \
+           widgets/DirModel.h \
            widgets/DeviceChooser.h \
+           widgets/DeviceExplorer.h \
            widgets/QlixMainWindow.h
 SOURCES += main.cpp \
            mtp/MtpDevice.cpp \
@@ -26,7 +29,10 @@ SOURCES += main.cpp \
            widgets/DeviceButton.cpp \
            widgets/QMtpDevice.cpp \ 
            widgets/MtpWatchDog.cpp \
+           widgets/AlbumModel.cpp \
+           widgets/DirModel.cpp \
            widgets/DeviceChooser.cpp \
+           widgets/DeviceExplorer.cpp \
            widgets/QlixMainWindow.cpp
 RESOURCES += Qlix.qrc
 unix {

@@ -3,9 +3,13 @@
 
 #include <QMainWindow>
 #include <QString>
+#include <QToolBar>
+#include <QAction>
+#include <QIcon>
 #include "libmtp.h"
 #include "mtp/MtpSubSystem.h"
 #include "widgets/DeviceChooser.h"
+#include "widgets/DeviceExplorer.h"
 
 
 /* This class first displays the device chooser widget. Then it displays either 
@@ -16,14 +20,27 @@ class QlixMainWindow : public QMainWindow
 Q_OBJECT
 public:
   QlixMainWindow(MtpSubSystem*);
+
+public slots:
+  void DeviceSelected(QMtpDevice*);
+
 protected:
 //  void closeEvent (QCloseEvent* eventh
 
 private:
+  
+  void setupActions();
+  void setupToolBar();
+  void setupWatchDogConnections();
+
   MtpWatchDog* _watchDog;
   DeviceChooser* _deviceChooser;
+  QMtpDevice* _currentDevice;
+  DeviceExplorer* _deviceExplorer;
 
-  void setupWatchDogConnections();
+  QToolBar* _toolBar;
+  //Actions
+  QAction* _albumListAction;
 };
 
 #endif

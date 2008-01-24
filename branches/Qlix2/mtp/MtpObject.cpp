@@ -1,4 +1,5 @@
 //TODO error checkking when returning char* ?
+//TODO use multimap for track/file distinction
 #include "mtp/MtpObject.h"
 using namespace MTP;
 namespace MTP
@@ -28,14 +29,39 @@ MtpObjectType GenericObject::Type() { return _type; }
  * @param in_track A pointer to the LIBMTP_track_t to wrap over
  * @return a new Track object
  */
-Track::Track(LIBMTP_track_t* in_track): 
-            GenericObject(MtpTrack, in_track->item_id)
+
+Track::Track(LIBMTP_track_t* in_track) :            GenericObject(MtpTrack, in_track->item_id),
+            _parent(NULL)
 {
   assert(in_track);
   _rawTrack = in_track;
 }
 
-count_t Track::ParentID() { return _rawTrack->parent_id; }
+/** Retreives the name of the wrapped Track
+ * @return the tracks's UTF8 name 
+ */
+const char* Track::Name() const
+{
+  return _rawTrack->title;
+}
+
+
+/** Returns the parent id of this track
+ * @return the parent id of this track
+ */
+count_t Track::ParentID() const { return _rawTrack->parent_id; }
+
+/** Sets the parent album of this track
+ * @param in_album the parent of this track
+ */
+void Track::SetParent(Album* in_album) {_parent = in_album; }
+
+
+
+/** Returns the parent Album of this track
+ * @return the parent Album of this track
+ */
+Album* Track::Parent() const { return _parent; }
 
 
 /** Creates a new File object and and stores its representative data
@@ -48,6 +74,7 @@ File::File(LIBMTP_file_t* in_file, const LIBMTP_filesampledata_t& in_sample) :
 {
   _rawFile = in_file;
   _sampleData = in_sample;
+  _parent = NULL;
 }
 
 
@@ -58,13 +85,20 @@ File::File(LIBMTP_file_t* in_file, const LIBMTP_filesampledata_t& in_sample) :
 count_t File::ParentID() const { return _rawFile->parent_id; }
 
 /**
- * Retreives the files sample data
- * @return the file's sample data
+ * Retreives the file's parent Folder
+ * @return the file's parent Folder or NULL if it exists in the root dir
  */
-const LIBMTP_filesampledata_t& File::SampleData() const
-{
-  return _sampleData;
+Folder* File::Parent() const { return _parent; }
+
+/**
+ * Sets the file's parent Folder
+ */
+void File::SetParent(Folder* in_parent) 
+{ 
+  _parent = in_parent;
 }
+
+
 
 char const * File::Name() const
 {
@@ -115,6 +149,19 @@ Folder* Folder::SubFolder(count_t idx) const
 }
 
 /**
+ * Returns the subfolder at the given index if it exists.
+ * @return the subfolder at the given index or NULL if it doesn't exist
+ */
+File* Folder::SubFile(count_t idx) const
+{
+  if (idx >= _childFiles.size())
+    return NULL;
+  else
+    return _childFiles[idx];
+}
+
+
+/**
  * Returns the number of files under this folder
  * @return the number of files under this folder
  */
@@ -162,17 +209,37 @@ void Folder::AddChildFile(File* in_file)
  * @param in_album A pointer to the LIBMTP_album_t wrap over
  * @return a new Album object
  */
-Album::Album(LIBMTP_album_t* in_album) : 
-             GenericObject (MtpAlbum, in_album->album_id)
+Album::Album(LIBMTP_album_t* in_album, 
+             const LIBMTP_filesampledata_t & in_sample) : 
+             GenericObject (MtpAlbum, in_album->album_id),
+             _sample(in_sample)
 {
   assert(in_album);
   _rawAlbum = in_album;
 }
 
+const LIBMTP_filesampledata_t& Album::SampleData() const
+{
+  return _sample;
+}
+
 /** Adds the passed track as s subtrack to this album
  * @param in_track the track to ass as a subtrack to this folder
  */
-void Album::AddChildTrack(Track* in_track) {_childTracks.push_back(in_track);}
+void Album::AddChildTrack(Track* in_track) 
+{
+  _childTracks.push_back(in_track);
+  in_track->SetParent(this);
+  in_track->rowid = _childTracks.size();
+}
+
+/** Retreives the name of the wrapped Album
+ * @return the album's UTF8 name 
+ */
+const char* Album::Name() const
+{
+  return _rawAlbum->name;
+}
 
 /**
  * Albums are container objects that hold a list of tracks that 
@@ -182,15 +249,27 @@ void Album::AddChildTrack(Track* in_track) {_childTracks.push_back(in_track);}
 count_t Album::TrackCount() const { return _rawAlbum->no_tracks; }
 
 /**
- * Albums are container objects that hold a list of tracks that 
- * reside underneath them
+ * Albums are container objects that hold a list of track IDs 
  * @param idx the index of the requested track
- * @return the track specified at the given index
+ * @return the uint32_t track ID specified at the given index
  */ 
-uint32_t Album::ChildTrack(count_t idx) const
+uint32_t Album::ChildTrackID(count_t idx) const
 {
   assert(idx < TrackCount());
   return _rawAlbum->tracks[idx];
+}
+
+
+/**
+ * Albums are also container objects that hold a list of tracks that 
+ * reside underneath them
+ * @param idx the index of the requested track
+ * @return the Track* specified at the given index
+ */ 
+Track* Album::ChildTrack(count_t idx) const
+{
+  assert(idx < _childTracks.size());
+  return _childTracks[idx];
 }
 
 

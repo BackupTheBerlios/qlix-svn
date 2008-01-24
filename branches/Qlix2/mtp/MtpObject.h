@@ -5,8 +5,18 @@
 #include <vector>
 #include <assert.h>
 #include "types.h"
+#include <iostream>
 namespace MTP
 {
+
+//forward declaration
+  class GenericObject;
+  class File;
+  class Folder;
+  class Album;
+  class Track;
+  class Playlist;
+
 /** 
  * @class Generic base class for other MTP object types
 */
@@ -29,9 +39,17 @@ class Track : public GenericObject
 {
 public:
   Track(LIBMTP_track_t*);
-  count_t ParentID();
+  count_t ParentID() const;
+  void SetParent(Album*);
+  const char* Name() const;
+  Album* Parent() const;
+
+  //to be deprecated
+  count_t rowid;
 private:
   LIBMTP_track_t* _rawTrack;
+  LIBMTP_filesampledata_t _sampleData;
+    Album* _parent;
 };
 
 /** 
@@ -41,12 +59,15 @@ class File : public GenericObject
 {
 public:
   File(LIBMTP_file_t*, const LIBMTP_filesampledata_t&);
-  const LIBMTP_filesampledata_t& SampleData() const;
   count_t ParentID() const;
   const char* Name() const;
+
+  void SetParent(Folder*);
+  Folder* Parent() const;
 private:
   LIBMTP_file_t* _rawFile;
   LIBMTP_filesampledata_t _sampleData;
+  Folder* _parent;
 };
 
 /** 
@@ -62,10 +83,12 @@ public:
 
   char* Name() const;
   Folder* SubFolder(count_t ) const;
+  File* SubFile(count_t ) const;
 
   LIBMTP_folder_t* RawFolder() const;
   void AddChildFolder(Folder*);
   void AddChildFile(File*);
+  count_t rowid;
 private:
   LIBMTP_folder_t* _rawFolder;
   Folder* _parent;
@@ -79,12 +102,20 @@ private:
 class Album: public GenericObject
 {
 public:
-  Album(LIBMTP_album_t*);
+  Album(LIBMTP_album_t*, const LIBMTP_filesampledata_t&);
+  const LIBMTP_filesampledata_t& SampleData() const;
   count_t TrackCount() const;
-  uint32_t ChildTrack(count_t ) const;
+  uint32_t ChildTrackID(count_t ) const;
+
+  Track* ChildTrack(count_t ) const;
   void AddChildTrack(Track* );
+
+  const char* Name() const;
+  //to be deprecated
+  count_t rowid;
 private:
   LIBMTP_album_t* _rawAlbum;
+  LIBMTP_filesampledata_t _sample;
   std::vector <Track*> _childTracks;
 };
 
@@ -103,6 +134,4 @@ private:
 };
 
 }
-
 #endif
-
