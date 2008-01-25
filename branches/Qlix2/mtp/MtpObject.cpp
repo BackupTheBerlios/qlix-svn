@@ -31,7 +31,8 @@ MtpObjectType GenericObject::Type() { return _type; }
  */
 
 Track::Track(LIBMTP_track_t* in_track) :            GenericObject(MtpTrack, in_track->item_id),
-            _parent(NULL)
+            _parentAlbum (NULL),
+            _parentPlaylist(NULL)
 {
   assert(in_track);
   _rawTrack = in_track;
@@ -40,28 +41,40 @@ Track::Track(LIBMTP_track_t* in_track) :            GenericObject(MtpTrack, in_t
 /** Retreives the name of the wrapped Track
  * @return the tracks's UTF8 name 
  */
-const char* Track::Name() const
+char const * const Track::Name() const
 {
   return _rawTrack->title;
 }
 
-
 /** Returns the parent id of this track
  * @return the parent id of this track
  */
-count_t Track::ParentID() const { return _rawTrack->parent_id; }
+count_t Track::ParentFolderID() const { return _rawTrack->parent_id; }
+
 
 /** Sets the parent album of this track
- * @param in_album the parent of this track
+ * @param in_album the parent album of this track
  */
-void Track::SetParent(Album* in_album) {_parent = in_album; }
+void Track::SetParentAlbum(Album* in_album) {_parentAlbum = in_album; }
+
+
+/** Sets the parent playlist of this track
+ * @param in_pl the parent playlist of this track
+ */
+void Track::SetParentPlaylist(Playlist* in_pl) {_parentPlaylist = in_pl; }
+
 
 
 
 /** Returns the parent Album of this track
  * @return the parent Album of this track
  */
-Album* Track::Parent() const { return _parent; }
+Album* Track::ParentAlbum() const { return _parentAlbum; }
+
+/** Returns the parent Playlist of this track
+ * @return the parent Playlist of this track
+ */
+Playlist* Track::ParentPlaylist() const { return _parentPlaylist; }
 
 
 /** Creates a new File object and and stores its representative data
@@ -98,9 +111,11 @@ void File::SetParent(Folder* in_parent)
   _parent = in_parent;
 }
 
-
-
-char const * File::Name() const
+/**
+ * Returns the name of the file
+ * @return The name of the file as a Utf8 string
+ */
+char const * const File::Name() const
 {
   //TODO error checking here?
   return _rawFile->filename;
@@ -181,7 +196,7 @@ count_t Folder::FolderCount() const
 /** Retreives the name of the wrapped folder or "" if it doesn't exist
  * @return the folder's UTF8 name or a blank string if it doesn't exist
  */
-char* Folder::Name() const
+char const* const Folder::Name() const
 {
   if (!_rawFolder)
     return "";
@@ -216,8 +231,14 @@ Album::Album(LIBMTP_album_t* in_album,
 {
   assert(in_album);
   _rawAlbum = in_album;
+  _initialized = false;
 }
 
+
+/** Returns the sample data for the album
+ * @return a reference to the LIBMTP_sampledata_t that was pulled from 
+ * the device
+ */
 const LIBMTP_filesampledata_t& Album::SampleData() const
 {
   return _sample;
@@ -229,16 +250,25 @@ const LIBMTP_filesampledata_t& Album::SampleData() const
 void Album::AddChildTrack(Track* in_track) 
 {
   _childTracks.push_back(in_track);
-  in_track->SetParent(this);
+  in_track->SetParentAlbum(this);
   in_track->rowid = _childTracks.size();
 }
 
 /** Retreives the name of the wrapped Album
  * @return the album's UTF8 name 
  */
-const char* Album::Name() const
+char const * const Album::Name() const
 {
   return _rawAlbum->name;
+}
+
+/** Retreives the artist name of the wrapped Album
+ * @return the albums's artist name in UTF8
+ */
+char const * const Album::Artist() const
+{
+  cout << "Artist: " << _rawAlbum->artist << endl;
+  return _rawAlbum->artist;
 }
 
 /**
@@ -246,7 +276,13 @@ const char* Album::Name() const
  * reside underneath them
  * @return the track count under this album
  */ 
-count_t Album::TrackCount() const { return _rawAlbum->no_tracks; }
+count_t Album::TrackCount() const 
+{
+  if (!_initialized)
+   return _rawAlbum->no_tracks; 
+  else
+    return _childTracks.size();
+}
 
 /**
  * Albums are container objects that hold a list of track IDs 
@@ -272,6 +308,11 @@ Track* Album::ChildTrack(count_t idx) const
   return _childTracks[idx];
 }
 
+/** 
+ * The Initialized state tells us when to stop using the underlying 
+ * LIBMTP data structure as it might become stale.
+ */
+void Album::SetInitialized() { _initialized = true; }
 
 /** Creates a new Playlist object
  * @param in_pl t pointer to the LIBMTP_playlist_t wrap over
@@ -280,7 +321,68 @@ Track* Album::ChildTrack(count_t idx) const
 Playlist::Playlist(LIBMTP_playlist_t* in_pl) : 
                   GenericObject(MtpPlaylist, in_pl->playlist_id)
 {
+  _initialized = false;
   _rawPlaylist =  in_pl;
 }
 
+/** Returns the name of this Playlist
+ * @return the name of this playlist;
+ */
+char const * const Playlist::Name() const
+{
+  return _rawPlaylist->name;
 }
+
+
+/** Adds a track to the list of child tracks
+ * @param in_track the pointer to the child track to add
+ */
+void Playlist::AddChildTrack(Track* in_track) 
+{
+  _childTracks.push_back(in_track);
+  in_track->SetParentPlaylist(this);
+}
+
+/** Returns the child track at the given index
+ * @param idx the index of the child track in the Playlists vector
+ * @return the child tradck at the given index or null if it doesn't exist
+ */
+Track* Playlist::ChildTrack(count_t idx) const
+{
+  if (idx >= _childTracks.size())
+    return NULL;
+  return _childTracks[idx];
+}
+/**
+ * Playlists are also container objects that hold a list of tracks that 
+ * reside underneath them
+ * @return the number of tracks underneath this playlist 
+ */ 
+count_t Playlist::TrackCount() const 
+{
+  if (!_initialized)
+   return _rawPlaylist->no_tracks; 
+  else
+    return _childTracks.size();
+}
+
+/**
+ * Playlists are container objects that hold a list of track IDs 
+ * @param idx the index of the requested track id
+ * @return the uint32_t track ID specified at the given index
+ */ 
+//there is a serious bug here if the trackcount is off from the underlying obj
+uint32_t Playlist::ChildTrackID(count_t idx) const
+{
+  assert(idx < TrackCount());
+  return _rawPlaylist->tracks[idx];
+}
+
+/** 
+ * The Initialized state tells us when to stop using the underlying 
+ * LIBMTP data structure as it might become stale.
+ */
+void Playlist::SetInitialized() { _initialized = true; }
+}
+
+

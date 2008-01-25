@@ -1,5 +1,5 @@
-#ifndef __DIRMODEL__
-#define __DIRMODEL__
+#ifndef __PLAYLISTMODEL__
+#define __PLAYLISTMODEL__
 #include <QAbstractItemModel>
 #include <QModelIndex>
 #include <QVariant>
@@ -8,13 +8,13 @@
 #include "types.h"
 #include "QtDebug"
 #include "QIcon"
-#include "QFont"
 #include <libmtp.h>
-class DirModel : public QAbstractItemModel
+#include <QFont>
+class PlaylistModel : public QAbstractItemModel
 {
 Q_OBJECT
 public:
-  DirModel(MtpDevice*, QObject* parent = NULL);
+  PlaylistModel(MtpDevice*, QObject* parent = NULL);
   QModelIndex index(int, int, const QModelIndex& parent= QModelIndex()) const;
   QModelIndex parent (const QModelIndex& index) const;
   int rowCount(const QModelIndex& parent= QModelIndex() ) const ;

@@ -34,12 +34,15 @@ public:
 
   count_t FileCount() const;
   count_t AlbumCount() const;
+  count_t PlaylistCount() const;
 
   MTP::File* File(count_t idx) const;
   MTP::Album* Album(count_t idx) const;
+  MTP::Playlist* Playlist(count_t idx) const;
 
   count_t RootFolderCount() const;
   count_t RootFileCount() const;
+
   MTP::Folder* RootFolder(count_t idx) const;
   MTP::File* RootFile(count_t idx) const;
 
@@ -59,6 +62,7 @@ private:
   LIBMTP_progressfunc_t _progressFunc;
 
   map<uint32_t, MTP::GenericObject*> _objectMap;
+  map<uint32_t, MTP::Track*> _trackMap;
   void processErrorStack();
 
   vector <string> _errorStack;
@@ -76,7 +80,8 @@ private:
   void createObjectStructure();
   void createFolderStructure(MTP::Folder*);
   void createFileStructure();
-  void createTrackStructure();
+  void createAlbumStructure();
+  void createPlaylistStructure();
 
 
   //Debug functions

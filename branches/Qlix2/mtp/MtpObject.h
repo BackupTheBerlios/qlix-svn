@@ -32,25 +32,6 @@ private:
 };
 
 
-/** 
- * @class Track is a class that wraps around LIBMTP_track_t
-*/
-class Track : public GenericObject
-{
-public:
-  Track(LIBMTP_track_t*);
-  count_t ParentID() const;
-  void SetParent(Album*);
-  const char* Name() const;
-  Album* Parent() const;
-
-  //to be deprecated
-  count_t rowid;
-private:
-  LIBMTP_track_t* _rawTrack;
-  LIBMTP_filesampledata_t _sampleData;
-    Album* _parent;
-};
 
 /** 
  * @class File is a class that wraps around LIBMTP_file_t
@@ -60,7 +41,7 @@ class File : public GenericObject
 public:
   File(LIBMTP_file_t*, const LIBMTP_filesampledata_t&);
   count_t ParentID() const;
-  const char* Name() const;
+  const char * const Name() const;
 
   void SetParent(Folder*);
   Folder* Parent() const;
@@ -81,7 +62,7 @@ public:
   count_t FolderCount() const;
   Folder* Parent() const;
 
-  char* Name() const;
+  char const * const Name() const;
   Folder* SubFolder(count_t ) const;
   File* SubFile(count_t ) const;
 
@@ -97,6 +78,29 @@ private:
 };
 
 /** 
+ * @class Track is a class that wraps around LIBMTP_track_t
+*/
+class Track : public GenericObject
+{
+public:
+  Track(LIBMTP_track_t*);
+  count_t ParentFolderID() const;
+  void SetParentAlbum(Album*);
+  void SetParentPlaylist(Playlist*);
+  const char* const Name() const;
+  Album* ParentAlbum() const;
+  Playlist* ParentPlaylist() const;
+
+  //to be deprecated
+  count_t rowid;
+private:
+  LIBMTP_track_t* _rawTrack;
+  LIBMTP_filesampledata_t _sampleData;
+  Album* _parentAlbum;
+  Playlist* _parentPlaylist;
+};
+
+/** 
  * @class Album is a class that wraps around LIBMTP_album_t
 */
 class Album: public GenericObject
@@ -106,14 +110,17 @@ public:
   const LIBMTP_filesampledata_t& SampleData() const;
   count_t TrackCount() const;
   uint32_t ChildTrackID(count_t ) const;
+  void SetInitialized();
 
   Track* ChildTrack(count_t ) const;
   void AddChildTrack(Track* );
 
-  const char* Name() const;
+  const char* const Name() const;
+  const char* const Artist() const;
   //to be deprecated
   count_t rowid;
 private:
+  bool _initialized;
   LIBMTP_album_t* _rawAlbum;
   LIBMTP_filesampledata_t _sample;
   std::vector <Track*> _childTracks;
@@ -127,10 +134,19 @@ class Playlist: public GenericObject
 public:
   Playlist(LIBMTP_playlist_t*);
   count_t TrackCount() const;
+  const char* const Name() const;
 
+  void AddChildTrack(Track* );
+  Track* ChildTrack(count_t idx) const; 
+  uint32_t ChildTrackID(count_t idx) const;
+  void SetInitialized();
+  //tobe deprecated
+  count_t rowid;
 private:
   count_t _trackCount;
+  bool _initialized;
   LIBMTP_playlist_t* _rawPlaylist;
+  std::vector <Track*> _childTracks;
 };
 
 }

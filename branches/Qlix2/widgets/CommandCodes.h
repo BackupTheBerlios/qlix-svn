@@ -7,7 +7,10 @@
 #include <QString>
 #include <QtDebug>
 #include <QList>
-
+/**
+ * @file
+ * This file will detail the thread level protocol between the GUI and the device
+ */
 enum MtpCommandCode
 {
     Initialize,

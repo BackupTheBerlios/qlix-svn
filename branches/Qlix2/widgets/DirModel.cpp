@@ -1,3 +1,4 @@
+//TODO SampleData for MTP::Files
 #include "widgets/DirModel.h"
 
 DirModel::DirModel(MtpDevice* in_dev, QObject* parent) :
@@ -148,43 +149,44 @@ QVariant DirModel::data(const QModelIndex& index, int role ) const
     return QVariant();
   }
 
-  return QVariant();
-}
-  /*
   if (role == Qt::DecorationRole)
   {
     MTP::GenericObject* temp = (MTP::GenericObject*) index.internalPointer();
-    if (temp->Type() == MtpAlbum && index.column() == 0)
+    if (temp->Type() == MtpFolder && index.column() == 0)
     {
-        MTP::Album* tempAlbum = (MTP::Album*)temp;
-        LIBMTP_filesampledata_t sample = tempAlbum->SampleData();
-        if (sample.filetype == LIBMTP_FILETYPE_UNKNOWN)
-        {
-          QPixmap ret;
-          if (sample.size > 0 && sample.data)
-          {
-            ret.loadFromData( (const uchar*)sample.data, sample.size);
-            return ret.scaledToWidth(32, Qt::SmoothTransformation);
-          }
-          ret.load(":/pixmaps/miscAlbumCover.png");
-          return ret;
-        }
-        else
-          qDebug() << "album decoration is not a jpeg:" << sample.filetype;
+      QPixmap ret(":/pixmaps/folder.png");
+      return ret.scaledToWidth(24, Qt::SmoothTransformation);
     }
-    else if (temp->Type() == MtpTrack && index.column() == 0)
+    else if (temp->Type() == MtpFile && index.column() == 0)
     {
-        return QIcon(QPixmap (":/pixmaps/track.png"));
+      QPixmap ret;
+      /* TODO SampleData for MTP::Files
+      MTP::File* tempFile = (MTP::File*)temp;
+      LIBMTP_filesampledata_t sample = tempFile->SampleData();
+      if (sample.filetype == LIBMTP_FILETYPE_UNKNOWN && (sample.size > 0 && sample.data) )
+      {
+          ret.loadFromData( (const uchar*)sample.data, sample.size);
+          return ret.scaledToWidth(24, Qt::SmoothTransformation);
+      }
+      */
+      ret.load(":/pixmaps/file.png");
+      return ret.scaledToWidth(24, Qt::SmoothTransformation);
     }
-    else
-      return QVariant();
+    return QVariant();
   }
-  if (role == Qt::SizeHintRole)
+
+  if (role == Qt::FontRole)
   {
     MTP::GenericObject* temp = (MTP::GenericObject*) index.internalPointer();
-    if (temp->Type() == MtpAlbum && index.column() == 0)
-      return QSize(40, 40);
+    //Its an album
+    if (temp->Type() == MtpFolder && index.column() == 0)
+    {
+      QFont temp;
+      temp.setBold(true);
+      temp.setPointSize(8);
+      return temp;
+    }
   }
   return QVariant();
 }
-  */
+

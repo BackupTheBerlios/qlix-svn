@@ -27,8 +27,11 @@ void QlixMainWindow::DeviceSelected(QMtpDevice* in_device)
 #endif
   _deviceChooser->hide();
   _currentDevice = in_device;
-  setupToolBar();
+
   _deviceExplorer = new DeviceExplorer(in_device, this);
+  setupToolBar();
+  setupActions();
+  setupConnections();
   setCentralWidget(_deviceExplorer);
 }
 
@@ -38,12 +41,34 @@ void QlixMainWindow::setupToolBar()
   _toolBar->setOrientation(Qt::Horizontal);
   _toolBar->setToolButtonStyle(Qt::ToolButtonTextUnderIcon);
   _toolBar->setFloatable(false);
-  setupActions();
   addToolBar(Qt::LeftToolBarArea,_toolBar);
 }
 
 void QlixMainWindow::setupActions()
 {
-  _albumListAction= new QAction( QIcon(":/pixmaps/albumList.png"), QString("View Albums"), NULL); 
-  _toolBar->addAction(_albumListAction);
+  _albumlistAction= new QAction( QIcon(":/pixmaps/albumlist.png"), QString("View Albums"), NULL); 
+  _playlistAction = new QAction( QIcon(":/pixmaps/playlist.png"), QString("View Playlists"), NULL); 
+  _filelistAction = new QAction( QIcon(":/pixmaps/filelist.png"), QString("View Files"), NULL); 
+  _preferencesAction = new QAction( QIcon(":/pixmaps/preferences.png"), QString("Preferences"), NULL); 
+  _manageDeviceAction = new QAction( QIcon(":/pixmaps/managedevice.png"), QString("Manage Device"), NULL); 
+  _toolBar->addAction(_albumlistAction);
+  _toolBar->addAction(_playlistAction);
+  _toolBar->addAction(_filelistAction);
+  _toolBar->addAction(_manageDeviceAction);
+  _toolBar->addAction(_preferencesAction);
+  _toolBar->setIconSize(QSize(40,40));
+}
+
+void QlixMainWindow::setupConnections()
+{
+  connect(_albumlistAction, SIGNAL(triggered(bool)),
+          _deviceExplorer, SLOT(ShowAlbums()));
+  connect(_playlistAction, SIGNAL(triggered(bool)),
+          _deviceExplorer, SLOT(ShowPlaylists()));
+  connect(_filelistAction, SIGNAL(triggered(bool)),
+          _deviceExplorer, SLOT(ShowFiles()));
+  connect(_manageDeviceAction, SIGNAL(triggered(bool)),
+          _deviceExplorer, SLOT(ShowDeviceManager()));
+  connect(_preferencesAction, SIGNAL(triggered(bool)),
+          _deviceExplorer, SLOT(ShowPreferences()));
 }

@@ -1,4 +1,9 @@
 #include "widgets/MtpWatchDog.h"
+
+/** 
+ * Creates a new WatchDog over the given subsystem
+ * @param in_subSystem the subsystem to watch over
+ */
 MtpWatchDog::MtpWatchDog(MtpSubSystem* in_subSystem, QObject* parent) :
                          _subSystem(in_subSystem),
                          _deviceCount(0)

@@ -9,6 +9,11 @@
 #include "widgets/QMtpDevice.h"
 
 class QMtpDevice;
+/**
+ * @class This class will in the future be used to handle events such as
+ * device disconnencts and connects while the application is in the middle of
+ * a transaction
+ */
 class MtpWatchDog : public QThread
 {
   Q_OBJECT

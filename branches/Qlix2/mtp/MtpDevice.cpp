@@ -161,6 +161,13 @@ MTP::File* MtpDevice::RootFile(count_t idx) const
 count_t MtpDevice::AlbumCount() const
 { return _albums.size(); }
 
+/**
+ * Returns the number of playlists on the device
+ */
+count_t MtpDevice::PlaylistCount() const
+{ return _playlists.size(); }
+
+
 
 /**
  * Returns the File at the given index if it exists
@@ -183,6 +190,19 @@ MTP::Album* MtpDevice::Album(count_t idx) const
     return NULL;
   return _albums[idx];
 }
+
+/**
+ * Returns the Playlist at the given index if it exists
+ * @return the Playlist at the given index or NULL if it is out of bounds
+ */
+MTP::Playlist* MtpDevice::Playlist(count_t idx) const
+{ 
+  if (idx > _playlists.size() )
+    return NULL;
+  return _playlists[idx];
+}
+
+
 /**
  * Retreives the object to the specificed path
  * @param in_id the item id of the requested Mtp object
@@ -345,11 +365,13 @@ void MtpDevice::createObjectStructure()
     cout << "Discovred a sample of height: " << temp.height << " of width: "<< temp.width << " size: " << temp.size << endl;
 
     count_t size = _objectMap.size();
+
     MTP::Album* currentAlbum = new MTP::Album(albumRoot, temp);
     _albums.push_back(currentAlbum);
     currentAlbum->rowid = _albums.size();
-    _objectMap[currentAlbum->ID()] = currentAlbum; 
+
     MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
+    _objectMap[currentAlbum->ID()] = currentAlbum; 
 
     //crosslink check
     //coun
@@ -363,11 +385,35 @@ void MtpDevice::createObjectStructure()
 
     albumRoot = albumRoot->next;
   }
+#ifdef QLIX_DEBUG
   cerr << "Album cross link count: " << crossLinkCount << endl;
+#endif
 
+  LIBMTP_playlist_t* playlistRoot = LIBMTP_Get_Playlist_List(_device);
+  crossLinkCount = 0;
+  while(playlistRoot)
+  {
+    count_t size = _objectMap.size();
+
+    MTP::Playlist* currentPlaylist = new MTP::Playlist(playlistRoot);
+    _playlists.push_back(currentPlaylist);
+    currentPlaylist->rowid = _playlists.size();
+
+    MTP::GenericObject* previous = _objectMap[currentPlaylist->ID()];
+    _objectMap[currentPlaylist->ID()] = currentPlaylist; 
+    if (_objectMap.size() != size+1)
+    {
+      assert(previous);
+      _crossLinked.push_back(previous);
+      _crossLinked.push_back(currentPlaylist);
+      crossLinkCount++;
+    }
+    playlistRoot = playlistRoot->next;
+  }
   createFolderStructure(NULL);
   createFileStructure();
-  createTrackStructure();
+  createAlbumStructure();
+  createPlaylistStructure();
   cout << "Crosslinked entries: " << _crossLinked.size() << endl;
 
 #ifdef QLIX_DEBUG
@@ -546,11 +592,10 @@ void MtpDevice::createFileStructure()
 }
 
 /**
- * Iterates over all the Albums and their tracks
- * Each track is looked up in the object map and added to the Album's vector 
- * of tracks
+ * Iterates over all the Albums and their tracks Each track is looked up in 
+ * the object map and added to the Album's vector  of tracks
  */
-void MtpDevice::createTrackStructure()
+void MtpDevice::createAlbumStructure()
 {
   MTP::GenericObject* obj;
   MTP::Album* parentAlbum;
@@ -563,7 +608,7 @@ void MtpDevice::createTrackStructure()
       //sanity check
       count_t size = _objectMap.size();
       obj = _objectMap[track_id];
-      assert(_objectMap.size() == size);
+//      assert(_objectMap.size() == size);
       if (obj->Type() != MtpTrack)
       {
         cerr << "Current track: " << track_id << "is crosslinked" << endl;
@@ -571,7 +616,36 @@ void MtpDevice::createTrackStructure()
       }
       parentAlbum->AddChildTrack( (MTP::Track*) obj);
     }
+    parentAlbum->SetInitialized();
   }
 }
 
 
+/**
+ * Iterates over all the Playlists and their tracks. Each track is looked up in 
+ * the object map and added to the Playlist's vector of tracks
+ */
+void MtpDevice::createPlaylistStructure()
+{
+  MTP::GenericObject* obj;
+  MTP::Playlist* parentPlaylist;
+  for (count_t i =0; i < _playlists.size(); i++)
+  {
+    parentPlaylist = _playlists[i];
+    for (count_t j = 0; j < parentPlaylist->TrackCount(); j++)
+    {
+      uint32_t track_id = parentPlaylist->ChildTrackID(j);
+      //sanity check
+      count_t size = _objectMap.size();
+      obj = _objectMap[track_id];
+      assert(_objectMap.size() == size);
+      if (obj->Type() != MtpTrack)
+      {
+        cerr << "Current track: " << track_id << "is crosslinked" << endl;
+        continue;
+      }
+      parentPlaylist->AddChildTrack( (MTP::Track*) obj);
+    }
+    parentPlaylist->SetInitialized();
+  }
+}

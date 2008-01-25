@@ -9,6 +9,11 @@
 #include "QtDebug"
 #include "QIcon"
 #include <libmtp.h>
+#include <QFont>
+/**
+ * @class This class wraps over the MTP::Album structures and provides a
+ * hierarchy that displays tracks underneath albums
+ */
 class AlbumModel : public QAbstractItemModel
 {
 Q_OBJECT

@@ -73,7 +73,18 @@ void QMtpDevice::initializeDeviceStructures()
 #endif
   _albumModel = new AlbumModel(_device);
   _dirModel = new DirModel(_device);
+  _plModel = new PlaylistModel(_device);
+
+  _sortedAlbums = new QSortFilterProxyModel();
+  _sortedPlaylists = new QSortFilterProxyModel();
+  _sortedFiles = new MtpDirSorter();
+
+  _sortedAlbums->setSourceModel(_albumModel);
+  _sortedPlaylists->setSourceModel(_plModel);
+  _sortedFiles->setSourceModel(_dirModel);
+
 } 
+
 /*
  * Iterates over all the devices files and tries to find devIcon.fil
  */
@@ -92,22 +103,46 @@ void QMtpDevice::findAndRetreiveDeviceIcon()
       break;
   }
   if (curFile)
+  {
+    QPixmap image;
     _device->Retreive(curFile->ID(), iconPath.toLatin1());
-  _icon = QIcon(QPixmap(iconPath));
+    QFile img_file(iconPath);
+    img_file.open(QFile::ReadOnly);
+    QByteArray buffer = img_file.readAll();
+    DeviceIcon devIcon(buffer);
+    if (devIcon.IsValid())
+    {
+        size_t temp = devIcon.GetBestImageSize();
+        char buf[temp];
+        devIcon.Extract(buf);
+        Dimensions dim = devIcon.GetDimensions();
+        QImage tempImage( (uchar*)buf, dim.Width, dim.Height, QImage::Format_ARGB32);
+        image = (QPixmap::fromImage(tempImage));
+    }
+    _icon = QIcon(QPixmap(image));
+  }
 }
 
 /*
- * Returns the AlbumModel
+ * Returns the sorted AlbumModel
  */
-AlbumModel* QMtpDevice::GetAlbumModel() const
+QSortFilterProxyModel* QMtpDevice::GetAlbumModel() const
 {
-  return _albumModel;
+  return _sortedAlbums;
 }
 /*
- * Returns the DirModel 
+ * Returns the sorted DirModel 
  */
-DirModel* QMtpDevice::GetDirModel() const
+QSortFilterProxyModel* QMtpDevice::GetDirModel() const
 {
-  return _dirModel;
+  return _sortedFiles;
+}
+
+/*
+ * Returns the sorted PlaylistModel 
+ */
+QSortFilterProxyModel* QMtpDevice::GetPlaylistModel() const
+{
+  return _sortedPlaylists;
 }
 

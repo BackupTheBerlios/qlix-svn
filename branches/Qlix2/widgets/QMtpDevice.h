@@ -6,12 +6,19 @@
 #include <QMutexLocker>
 #include <QWaitCondition>
 #include <QQueue>
+#include <QModelIndex>
+#include <QFile>
+#include <QSortFilterProxyModel>
 
 #include "mtp/MtpDevice.h"
 #include "widgets/MtpWatchDog.h"
 #include "widgets/CommandCodes.h"
 #include "widgets/AlbumModel.h"
+#include "widgets/PlaylistModel.h"
 #include "widgets/DirModel.h"
+
+#include "mtp/Icon.h"
+#include "mtp/BmpStructs.h"
 
 class MtpWatchDog;
 /*
@@ -26,8 +33,9 @@ public:
   QString Name();
   QIcon Icon();
   void IssueCommand (MtpCommand* in_command);
-  AlbumModel* GetAlbumModel() const;
-  DirModel* GetDirModel() const;
+  QSortFilterProxyModel* GetAlbumModel() const;
+  QSortFilterProxyModel* GetPlaylistModel() const;
+  QSortFilterProxyModel* GetDirModel() const;
 
 signals:
   void Initialized(QMtpDevice*);
@@ -54,5 +62,43 @@ private:
 
   AlbumModel* _albumModel;
   DirModel* _dirModel;
+  PlaylistModel* _plModel;
+  /**
+   * A private class to manage sorting of the Directory model
+   * it sorts directories before files.
+   */
+  class MtpDirSorter  : public QSortFilterProxyModel
+  {
+  public:
+    MtpDirSorter(QObject* parent = NULL) : QSortFilterProxyModel(parent) { }
+    bool lessThan(const QModelIndex& left, const QModelIndex& right) const
+    {
+      MTP::GenericObject* leftobj = (MTP::GenericObject*) left.internalPointer();
+      MTP::GenericObject* rightobj = (MTP::GenericObject*) right.internalPointer();
+      if (leftobj->Type() == MtpFolder && rightobj->Type() == MtpFolder)
+      {
+        MTP::Folder* leftFolder = (MTP::Folder*) leftobj;
+        MTP::Folder* rightFolder = (MTP::Folder*) rightobj;
+        return ( QString::fromUtf8(leftFolder->Name()  ) < 
+                 QString::fromUtf8(rightFolder->Name() ) );
+      }
+      else if (leftobj->Type() == MtpFolder && rightobj->Type() == MtpFile)
+        return true;
+      else if (leftobj->Type() == MtpFile && rightobj->Type() == MtpFolder)
+        return false;
+      else if (leftobj->Type() == MtpFile && rightobj->Type() == MtpFile)
+      {
+        MTP::File* leftFile = (MTP::File*) leftobj;
+        MTP::File* rightFile = (MTP::File*) rightobj;
+        return ( QString::fromUtf8(leftFile->Name()  ) < 
+                 QString::fromUtf8(rightFile->Name() ) );
+       }
+       assert(false);
+      }
+    };
+    MtpDirSorter* _sortedFiles;
+    QSortFilterProxyModel* _sortedAlbums;
+    QSortFilterProxyModel* _sortedPlaylists;
+
 };
 #endif

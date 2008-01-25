@@ -19,9 +19,13 @@
 #include "widgets/QMtpDevice.h"
 
 
-/* This class displays the device chooser widget */
 typedef QVector<DeviceButton*> QButtonVector;
 
+/** 
+ * @class This class displays the device chooser widget
+ * which is a widget that display a series of buttons, one for each
+ * device that has been detected by libMTP
+ */
 class  DeviceChooser : public QScrollArea
 {
 Q_OBJECT
