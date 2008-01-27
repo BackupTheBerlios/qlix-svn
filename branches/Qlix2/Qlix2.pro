@@ -16,6 +16,7 @@ HEADERS += linuxsignals.h \
            mtp/MtpDevice.h \
            mtp/MtpObject.h \
            mtp/MtpSubSystem.h \
+           widgets/QlixPreferences.h \
            widgets/DeviceButton.h \
            widgets/MtpWatchDog.h \ 
            widgets/QMtpDevice.h \ 
@@ -29,6 +30,7 @@ SOURCES += main.cpp \
            mtp/MtpDevice.cpp \
            mtp/MtpObject.cpp \
            mtp/MtpSubSystem.cpp \
+           widgets/QlixPreferences.cpp \
            widgets/DeviceButton.cpp \
            widgets/QMtpDevice.cpp \ 
            widgets/MtpWatchDog.cpp \

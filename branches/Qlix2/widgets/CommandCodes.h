@@ -14,12 +14,12 @@
 enum MtpCommandCode
 {
     Initialize,
+    SendFile,
     /* Not implemented yet
     Connect,
     Disconnect,
     GetDeviceInfo,
     GetFile,
-    SendFile,
     Delete,
     GetDirMetaData,
     GetFileMetaData,
@@ -35,6 +35,18 @@ struct MtpCommand
 {
   MtpCommandCode ComCode;
   MtpCommandCode GetCommand()  { return ComCode; }
+};
+
+struct MtpCommandSendFile : MtpCommand
+{
+    QString Path;
+    bool IsTrack;
+    MtpCommandSendFile (QString in_path, bool in_asTrack = false) 
+    {
+        Path = in_path;
+        IsTrack = in_asTrack;
+        ComCode = SendFile;
+    }
 };
 
 /*
@@ -119,19 +131,6 @@ struct MtpCommandGetFile : MtpCommand
     }
 };
 
-struct MtpCommandSendFile : MtpCommand
-{
-    QString Path;
-    uint32_t ParentID;
-    bool IsTrack;
-    MtpCommandSendFile (QString in_path, uint32_t in_ParentID, bool in_asTrack = false) 
-    {
-        ParentID = in_ParentID;
-        Path = in_path;
-        IsTrack = in_asTrack;
-        ComCode = SendFile;
-    }
-};
 
 struct MtpCommandDelete : MtpCommand
 {

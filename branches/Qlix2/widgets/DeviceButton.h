@@ -17,7 +17,7 @@ public:
   void RemoveCheck();
 
 signals:
-  void Checked(DeviceButton*);
+  void Checked(DeviceButton*, QMtpDevice* _device);
   void Selected(QMtpDevice*);
 
 private slots:

@@ -9,16 +9,16 @@ QMtpDevice::QMtpDevice(MtpDevice* in_device, MtpWatchDog* in_watchDog,
   start(); 
 }
 
-QString QMtpDevice::Name()
-{ return  _name; }
-
-QIcon QMtpDevice::Icon()
-{ return _icon; }
+QString QMtpDevice::Name() { return  _name; }
+QString QMtpDevice::Serial() { return  _serial; }
+QIcon QMtpDevice::Icon() { return _icon; }
 
 void QMtpDevice::IssueCommand(MtpCommand* in_cmd)
 {
   QMutexLocker locker(&_jobLock);
   _jobs.push_back(in_cmd);
+  _noJobsCondition.wakeOne();
+  qDebug() << "Issued command";
 }
 
 void QMtpDevice::run()
@@ -42,7 +42,11 @@ void QMtpDevice::run()
     switch (type)
     {
       case Initialize:
-         break;
+        delete currentJob;  
+        break;
+      case SendFile:
+        MtpCommandSendFile* sendCmd = (MtpCommandSendFile*)currentJob;
+        qDebug() << "Got a send File command with path: " << sendCmd->Path;
     }
   }
 }
@@ -68,6 +72,7 @@ void QMtpDevice::initializeDeviceStructures()
     return;
   _device->Initialize();
   _name = QString::fromUtf8(_device->Name()); 
+  _serial = QString::fromUtf8(_device->SerialNumber());
 #ifdef QLIX_DEBUG
   qDebug() << "Discovered name to be: " << _name;
 #endif
@@ -107,19 +112,24 @@ void QMtpDevice::findAndRetreiveDeviceIcon()
     QPixmap image;
     _device->Retreive(curFile->ID(), iconPath.toLatin1());
     QFile img_file(iconPath);
-    img_file.open(QFile::ReadOnly);
-    QByteArray buffer = img_file.readAll();
-    DeviceIcon devIcon(buffer);
-    if (devIcon.IsValid())
+    if (img_file.exists())
     {
-        size_t temp = devIcon.GetBestImageSize();
-        char buf[temp];
-        devIcon.Extract(buf);
-        Dimensions dim = devIcon.GetDimensions();
-        QImage tempImage( (uchar*)buf, dim.Width, dim.Height, QImage::Format_ARGB32);
-        image = (QPixmap::fromImage(tempImage));
+      img_file.open(QFile::ReadOnly);
+      QByteArray buffer = img_file.readAll();
+      DeviceIcon devIcon(buffer);
+      if (devIcon.IsValid())
+      {
+          size_t temp = devIcon.GetBestImageSize();
+          char buf[temp];
+          devIcon.Extract(buf);
+          Dimensions dim = devIcon.GetDimensions();
+          QImage tempImage( (uchar*)buf, dim.Width, dim.Height, QImage::Format_ARGB32);
+          image = (QPixmap::fromImage(tempImage));
+      }
+      _icon = QIcon(QPixmap(image));
     }
-    _icon = QIcon(QPixmap(image));
+    else
+      _icon = QIcon(QPixmap(":/pixmaps/miscDev.png"));
   }
 }
 
@@ -144,5 +154,16 @@ QSortFilterProxyModel* QMtpDevice::GetDirModel() const
 QSortFilterProxyModel* QMtpDevice::GetPlaylistModel() const
 {
   return _sortedPlaylists;
+}
+
+void QMtpDevice::TransferTrack(QString inpath) 
+{
+  QFileInfo file(inpath);
+  if (file.isDir())
+    return;
+
+  MtpCommandSendFile* temp = new MtpCommandSendFile(inpath, true);
+  IssueCommand(temp);
+  qDebug() << "Attempting to transfer file: " << inpath;
 }
 

@@ -12,6 +12,7 @@
 MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device) 
 {
   _device = in_device;
+  _serialNumber = LIBMTP_Get_Serialnumber(_device);
 }
 
 /**
@@ -78,7 +79,6 @@ void MtpDevice::Initialize()
   _progressFunc= NULL;
    _name = LIBMTP_Get_Friendlyname(_device);
 
-  _serialNumber = LIBMTP_Get_Serialnumber(_device);
   _version = LIBMTP_Get_Deviceversion(_device);
   _syncPartner= LIBMTP_Get_Syncpartner(_device);
   _modelName = LIBMTP_Get_Modelname(_device);
@@ -228,6 +228,7 @@ char const * const MtpDevice::Name() const
 
 /**
  * @return Returns the device serial number as a UTF8 string
+ * This is mostly used for quickly connecting to a default device
  */
 char const * const MtpDevice::SerialNumber() const
 {
@@ -649,3 +650,84 @@ void MtpDevice::createPlaylistStructure()
     parentPlaylist->SetInitialized();
   }
 }
+
+bool MtpDevice::setupTrackForTransfer(const char* in_location, uint32_t in_parentID, LIBMTP_track_t* newtrack)
+{
+    string unknownString("Unknown");
+    const char* UtfLocation = in_location;
+    TagLib::FileRef tagFile(UtfLocation, true, TagLib::AudioProperties::Accurate);
+    //qDebug() <<"File path is: " + loc ; 
+    if (tagFile.isNull())
+    {
+        qDebug() << "Not a recognizable track format" ;
+        return false;
+    }
+    
+//Copy the album
+    QString qAlbumTag = TStringToQString(tagFile.tag()->album());
+    char* album;
+    if (qAlbumTag.isEmpty() || qAlbumTag.toUpper() == "UNKNOWN")
+        album = strdup(unknownString.toUtf8().data());
+    else
+        album = strdup(qAlbumTag.toUtf8().data());
+
+    QString qalbum2 = QString::fromUtf8(album);
+    qDebug() << "Album sanity check2: " << qalbum2;
+    qDebug() << "Album sanity check3: " << qAlbumTag;
+
+//Copy the title
+    QString qTitleTag = TStringToQString(tagFile.tag()->title());
+    char* title;
+    if (qTitleTag.isEmpty() || qTitleTag.toUpper() == "UNKNOWN")
+        title = strdup(unknownString.toUtf8().data());
+    else
+        title = strdup(qTitleTag.toUtf8().data());
+
+    QString qtitle2 = QString::fromUtf8(title);
+    qDebug() << "Title sanity check2: " << qtitle2;
+    qDebug() << "Title sanity check3: " << qTitleTag;
+
+////////////////////Copy the artist
+    QString qArtistTag = TStringToQString(tagFile.tag()->artist());
+    char* artist;
+    if (qArtistTag.isEmpty() || qArtistTag.toUpper() == "UNKNOWN")
+        artist = strdup(unknownString.toUtf8().data());
+    else
+        artist = strdup(qArtistTag.toUtf8().data());
+
+
+    QString qartist2 = QString::fromUtf8(artist);
+    qDebug() << "Artist sanity check2: " << qartist2;
+    qDebug() << "Artist sanity check3: " << qArtistTag;
+
+////////////////////Copy the genre
+    QString qGenreTag = TStringToQString(tagFile.tag()->genre());
+    char* genre;
+    if (qGenreTag.isEmpty() || qGenreTag.toUpper() == "UNKNOWN")
+        genre =  strdup(unknownString.toUtf8().data());
+    else
+        genre = strdup(qGenreTag.toUtf8().data());
+
+    QString qgenre2 = QString::fromUtf8(genre);
+    qDebug() << "Genre sanity check2: " << qgenre2;
+    qDebug() << "Genre sanity check3: " << qGenreTag;
+
+////////////////////Copy the filename
+    const char* actualFilename = fileinfo.fileName().toUtf8().data();
+    char* filename = strdup(actualFilename);
+
+    newtrack->parent_id = in_parentID;
+    newtrack->title = title;
+    newtrack->artist = artist;
+    newtrack->genre = genre;
+    newtrack->album = album;
+    newtrack->filename= filename;
+    newtrack->tracknumber = tagFile.tag()->track();
+    newtrack->duration  = tagFile.audioProperties()->length()*1000;
+    newtrack->bitrate   = tagFile.audioProperties()->bitrate();
+    newtrack->filesize  = QFile(fileinfo.canonicalFilePath()).size();
+    newtrack->filetype = FileNode::GetMtpType((fileinfo.suffix()));
+    newtrack->next = NULL;
+    return true;
+}
+

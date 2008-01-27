@@ -6,8 +6,9 @@
 #include <QMutexLocker>
 #include <QWaitCondition>
 #include <QQueue>
-#include <QModelIndex>
 #include <QFile>
+#include <QFileInfo>
+#include <QModelIndex>
 #include <QSortFilterProxyModel>
 
 #include "mtp/MtpDevice.h"
@@ -31,7 +32,11 @@ class QMtpDevice : public QThread
 public:
   QMtpDevice(MtpDevice*, MtpWatchDog*, QObject* parent = NULL);
   QString Name();
+  QString Serial();
   QIcon Icon();
+
+  void TransferTrack(QString filepath);
+
   void IssueCommand (MtpCommand* in_command);
   QSortFilterProxyModel* GetAlbumModel() const;
   QSortFilterProxyModel* GetPlaylistModel() const;
@@ -39,6 +44,7 @@ public:
 
 signals:
   void Initialized(QMtpDevice*);
+  void TrackTransferComplete();
 
 protected:
   void run();
@@ -55,6 +61,7 @@ private:
   MtpWatchDog* _watchDog;
   QIcon _icon;
   QString _name;
+  QString _serial;
 
   QQueue <MtpCommand*> _jobs;
   QMutex _jobLock;

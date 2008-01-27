@@ -16,6 +16,28 @@ void MtpWatchDog::run()
 {
   Lock();
   _subSystem->Initialize();
+  QSettings settings;
+  QString defaultDev = settings.value("DefaultDevice").toString();
+
+  if (_subSystem->DeviceCount() == 0)
+  {
+    emit NoDevices();
+    return;
+  }
+
+  for (count_t i = 0; i< _subSystem->DeviceCount() && !defaultDev.isEmpty(); i++)
+  {
+    if (QString::fromUtf8(_subSystem->Device(i)->SerialNumber()) == defaultDev)
+    {
+      QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);
+      connect(_threadedDev, SIGNAL(Initialized (QMtpDevice*)),
+              this, SIGNAL(DefaultDevice(QMtpDevice*)), Qt::QueuedConnection);
+      qDebug() << "Found the defualt device: " << defaultDev;
+      Unlock();
+      return;
+    }
+  }
+
   for (count_t i = 0; i< _subSystem->DeviceCount(); i++)
   {
     QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);

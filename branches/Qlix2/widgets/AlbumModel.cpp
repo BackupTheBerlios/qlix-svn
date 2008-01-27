@@ -104,7 +104,10 @@ int AlbumModel::rowCount(const QModelIndex& parent) const
  */
 int AlbumModel::columnCount(const QModelIndex& parent ) const 
 { 
+  MTP::GenericObject* obj = (MTP::GenericObject*)parent.internalPointer();
+  if (obj && obj->Type() == MtpAlbum)
     return 2;
+  return 1;
 }
 /**
  * Returns the data to display at the given index and the role
@@ -120,10 +123,7 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
     {
         MTP::Album* tempAlbum = (MTP::Album*)temp;
         QString first = QString::fromUtf8(tempAlbum->Name());
-        QString second = QString('\n') + QString("    ") + QString::fromUtf8(tempAlbum->Artist());
-#ifdef QLIX_DEBUG
-        qDebug() << "Returning for artist + album combo : " << first + second;
-#endif
+//        QString second = QString('\n') + QString("    ") + QString::fromUtf8(tempAlbum->Artist());
         return (first);
     }
     else if (temp->Type() == MtpTrack && index.column() == 0)

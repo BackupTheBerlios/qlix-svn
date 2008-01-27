@@ -9,6 +9,7 @@
 #include <QLabel>
 #include <QDebug>
 #include <QMetaType>
+#include <QSettings>
 #include <QVector>
 
 #include <libmtp.h>
@@ -34,9 +35,10 @@ public:
 signals:
   void DeviceSelected(QMtpDevice* );
 public slots:
-  void ExclusivelySelected(DeviceButton*); 
+  void ExclusivelySelected(DeviceButton*, QMtpDevice*); 
   void Reinitialize();
   void AddDevice(QMtpDevice*);
+  void NoDevices();
 
 private slots:
   void deviceCountChanged();
@@ -51,37 +53,53 @@ private:
   void setupWatchDogConnections();
   void initialize();
   void createNoDeviceWidget();
+  void createDetectDevicesWidget();
   void addButtonToLayout(DeviceButton*);
   void showNoDeviceWidget();
   void hideNoDeviceWidget();
 
 
   QVector <QMtpDevice*> _devices;
-  /* Used when there are no devices */
-  NoDevice* _noDeviceLayout;
 
   /* Used when devices are detected */
   QButtonVector _deviceButtons;
   QGridLayout* _chooserLayout;
   QGroupBox*  _chooserGroupBox;
 
+  NoDevice* _noDeviceWidget;
+  NoDevice* _detectDevicesWidget;
+
+
   /**
-  * @class A private class to display the NoDevice Widget
+  * @class A private class to display the NoDevice Icon or alternatively
+  * it shoulds the Detecting Devices Icon
+  * 
   */
   class NoDevice : public QWidget 
   {
     public:
-    NoDevice(QWidget* parent = NULL)
+    NoDevice(bool nodevice, QWidget* parent = NULL)
     {
       _layout = new QGridLayout();
       _top = new QSpacerItem(10, 10, QSizePolicy::Maximum,
                                               QSizePolicy::Expanding);
       _bottom = new QSpacerItem(10, 10, QSizePolicy::Maximum,
                                               QSizePolicy::Expanding);
-      _text = new QLabel(QString("No devices detected!"));
+      QString txt;
+      if (nodevice)
+        txt = QString("<h2>No devices detected!<h2>");
+      else
+        txt = QString("<h2>Detecting devices..<h2>");
+
+      _text = new QLabel(txt);
+      _text->setTextFormat(Qt::RichText);
 
       _image = new QLabel();
-      _image->setPixmap(QPixmap(":/pixmaps/noDevice.png"));
+      if (nodevice)
+        _image->setPixmap(QPixmap(":/pixmaps/noDevice.png"));
+      else
+        _image->setPixmap(QPixmap(":/pixmaps/DetectDevices.png"));
+
       _layout->addItem(_top, 0, 0, 1, -1);
       _layout->addWidget(_text, 1, 0, 1, -1, Qt::AlignCenter);
       _layout->addWidget(_image, 2, 0, 1, -1, Qt::AlignCenter);

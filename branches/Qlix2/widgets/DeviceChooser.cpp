@@ -8,6 +8,7 @@
 DeviceChooser::DeviceChooser(QWidget* parent)
 {
   createNoDeviceWidget();
+  createDetectDevicesWidget();
   initialize();
 }
 
@@ -22,7 +23,7 @@ void DeviceChooser::initialize()
   _chooserLayout->setColumnMinimumWidth(0, 160);
 
   QScrollArea::setWidgetResizable(true);
-  QScrollArea::setWidget(_noDeviceLayout);
+  QScrollArea::setWidget(_detectDevicesWidget);
   return;
 }
 
@@ -31,13 +32,18 @@ void DeviceChooser::initialize()
  * to selected
  * @param selected the exclusively selected DeviceButton
  */
-void DeviceChooser::ExclusivelySelected(DeviceButton* selected)
+void DeviceChooser::ExclusivelySelected(DeviceButton* selected,
+                                       QMtpDevice* selectedDev)
 {
+  QSettings settings;
   for (int i = 0; i < _deviceButtons.size(); i++)
   {
     if (_deviceButtons[i] != selected)
       _deviceButtons[i]->RemoveCheck();
   }
+  settings.setValue("DefaultDevice", selectedDev->Serial());
+  qDebug() << "Stored: " << selectedDev->Serial();
+  settings.sync();
 }
 /*
  * A function stub that might be needed for later use
@@ -77,12 +83,26 @@ void DeviceChooser::AddDevice(QMtpDevice* in_device)
   setupConnections(_deviceButtons.size()-1);
 }
 
+
+void DeviceChooser::NoDevices()
+{
+  QScrollArea::setWidget(_noDeviceWidget);
+}
+
 /**
  * Creates the noDevice  widget
  */
 void DeviceChooser::createNoDeviceWidget()
 {
-  _noDeviceLayout = new NoDevice();
+  _noDeviceWidget = new NoDevice(true);
+}
+
+
+/** Creates the Detecting Devices widget
+ */
+void DeviceChooser::createDetectDevicesWidget()
+{
+  _detectDevicesWidget = new NoDevice(false);
 }
 
 /*
@@ -97,9 +117,11 @@ void DeviceChooser::deviceCountChanged()
  */
 void DeviceChooser::setupConnections(count_t idx)
 {
-  assert (idx < _deviceButtons.size());
-  QObject::connect(_deviceButtons[idx], SIGNAL(Checked(DeviceButton*) ),
-                     this, SLOT(ExclusivelySelected(DeviceButton* )));
+  assert (idx <(int) _deviceButtons.size());
+  QObject::connect(_deviceButtons[idx], 
+                   SIGNAL(Checked(DeviceButton*, QMtpDevice*) ),
+                   this,
+                   SLOT(ExclusivelySelected(DeviceButton*, QMtpDevice*)));
   QObject::connect(_deviceButtons[idx], SIGNAL(Selected(QMtpDevice*)),
                    this, SIGNAL(DeviceSelected(QMtpDevice*)));
 }

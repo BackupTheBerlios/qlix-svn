@@ -7,6 +7,7 @@
 #include "mtp/MtpSubSystem.h"
 #include "types.h"
 #include "widgets/QMtpDevice.h"
+#include "QSettings"
 
 class QMtpDevice;
 /**
@@ -25,6 +26,8 @@ public:
 signals:
   void DeviceCountChanged(count_t );
   void NewDevice(QMtpDevice* Device);
+  void DefaultDevice(QMtpDevice* Device);
+  void NoDevices();
 
 protected:
   void run();

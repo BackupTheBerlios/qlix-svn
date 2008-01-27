@@ -18,6 +18,24 @@
         <file>pixmaps/preferences.png</file>
         <file>pixmaps/managedevice.png</file>
         <file>pixmaps/playlisticon.png</file>
+        <file>pixmaps/ActionBar/AddToPlaylist.png</file>
+        <file>pixmaps/ActionBar/AddToQueue.png</file>
+        <file>pixmaps/ActionBar/DeleteFile.png</file>
+        <file>pixmaps/ActionBar/DeleteFolder.png</file>
+        <file>pixmaps/ActionBar/DeleteFromPlaylist.png</file>
+        <file>pixmaps/ActionBar/DeleteFromQueue.png</file>
+        <file>pixmaps/ActionBar/DeletePlaylist.png</file>
+        <file>pixmaps/ActionBar/DeleteTrack.png</file>
+        <file>pixmaps/ActionBar/HideQueue.png</file>
+        <file>pixmaps/ActionBar/NewFolder.png</file>
+        <file>pixmaps/ActionBar/NewPlaylist.png</file>
+        <file>pixmaps/ActionBar/ShowDeviceTracks.png</file>
+        <file>pixmaps/ActionBar/ShowFSTracks.png</file>
+        <file>pixmaps/ActionBar/ShowQueue.png</file>
+        <file>pixmaps/ActionBar/Sync.png</file>
+        <file>pixmaps/ActionBar/TransferFile.png</file>
+        <file>pixmaps/ActionBar/TransferFile.png</file>
+        <file>pixmaps/DetectDevices.png</file>
     </qresource>
 </RCC>
 
