@@ -1,5 +1,7 @@
 #include <QWidget>
 #include <QToolBar>
+#include <QSpacerItem>
+#include <QProgressBar>
 #include <QAction>
 #include <QToolButton>
 #include <QGridLayout>
@@ -35,6 +37,7 @@ Q_OBJECT
 public:
   DeviceExplorer(QMtpDevice*, QWidget* parent);
   bool QueueState();
+  void SetProgressBar(QProgressBar*);
 
 public slots:
   void ShowFiles();
@@ -43,14 +46,25 @@ public slots:
   void ShowPreferences();
   void ShowDeviceManager();
   void ShowQueue(bool);
+  void UpdateProgressBar(const QString&, count_t percent);
 
 signals:
 
 private slots:
   void TransferTrackToDevice();
+  void TransferFromDevice();
 private:
+  enum ViewPort
+  {
+    AlbumsView,
+    PlaylistView,
+    FileView
+  };
   void setupToolBars();
   void setupMenus();
+  void setupDeviceView();
+  void setupFileSystemView();
+  void setupProgressBar();
 
   void setupAlbumTools();
   void setupPlaylistTools();
@@ -65,8 +79,10 @@ private:
   void hidePlaylistTools();
   void hideFileTools();
 
+  void updateDeviceSpace();
   void clearActions();
   QGridLayout* _layout; 
+  ViewPort _view;
 
 //Filesystem representation
   QListView* _fsView;
@@ -89,13 +105,16 @@ private:
 //Device manager and preferences (for now there are just labels
   QlixPreferences* _preferencesWidget;
   QLabel* _deviceManagerWidget;
-//Used to figure out if we are displaying the preferences or devicemanager widget
+//Used to figure out if we are displaying the preferences or devicemanager
+//widget
   bool _otherWidgetShown;
   bool _queueShown;
 
   //Track toolbar and actions
   QToolBar* _tools;
-  QToolBar* _quickTools;
+  QSpacerItem* _progressBarSpacer;
+  //Progress bar for space usage and transfers
+  QProgressBar* _progressBar;
 
   //Album Actions
   QAction* _transferTrackToDevice;

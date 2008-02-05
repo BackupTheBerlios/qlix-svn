@@ -7,6 +7,8 @@
 #include <QWaitCondition>
 #include <QQueue>
 #include <QFile>
+#include <QDir>
+#include <QFileInfo>
 #include <QFileInfo>
 #include <QModelIndex>
 #include <QSortFilterProxyModel>
@@ -20,6 +22,9 @@
 
 #include "mtp/Icon.h"
 #include "mtp/BmpStructs.h"
+#include <tag.h>
+#include <fileref.h>
+using namespace MTPCMD;
 
 class MtpWatchDog;
 /*
@@ -36,23 +41,29 @@ public:
   QIcon Icon();
 
   void TransferTrack(QString filepath);
+  void TransferFrom(MTP::GenericObject*, QString );
 
-  void IssueCommand (MtpCommand* in_command);
+  void IssueCommand (GenericCommand* in_command);
   QSortFilterProxyModel* GetAlbumModel() const;
   QSortFilterProxyModel* GetPlaylistModel() const;
   QSortFilterProxyModel* GetDirModel() const;
+  void Progress(uint64_t const sent, uint64_t const total);
+  void FreeSpace(uint64_t* , uint64_t*);
 
 signals:
   void Initialized(QMtpDevice*);
-  void TrackTransferComplete();
+  void TrackTransferComplete(bool success, GenericCommand*);
+  void UpdateProgress(QString, count_t);
 
 protected:
   void run();
 
 private:
 
-  void QMtpDevice::findAndRetreiveDeviceIcon();
-  void QMtpDevice::initializeDeviceStructures();
+  void findAndRetrieveDeviceIcon();
+  void initializeDeviceStructures();
+  bool syncTrack(TagLib::FileRef, uint32_t parent); 
+  bool syncFile();
 
   void lockusb();
   void unlockusb();
@@ -63,13 +74,16 @@ private:
   QString _name;
   QString _serial;
 
-  QQueue <MtpCommand*> _jobs;
+  QQueue <GenericCommand*> _jobs;
   QMutex _jobLock;
   QWaitCondition _noJobsCondition;
 
   AlbumModel* _albumModel;
   DirModel* _dirModel;
   PlaylistModel* _plModel;
+
+  static int progressWrapper(uint64_t const sent, uint64_t const total, 
+                             const void* const data);
   /**
    * A private class to manage sorting of the Directory model
    * it sorts directories before files.

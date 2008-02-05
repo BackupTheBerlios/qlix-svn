@@ -6,8 +6,10 @@
  * @param parent the parent widget of this widget, should QlixMainWindow
  */
 DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
-                              _device(in_device)
+                              _device(in_device),
+                              _progressBar(NULL)
 {
+  qRegisterMetaType<count_t>("count_t");
   _layout = new QGridLayout(this);
 
   _preferencesWidget = new QlixPreferences();
@@ -19,42 +21,18 @@ DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
   _albumModel = _device->GetAlbumModel();
   _dirModel= _device->GetDirModel();
   _plModel = _device->GetPlaylistModel();
-
-  _deviceView = new QTreeView();
-  _deviceView->setModel(_albumModel);
+  setupDeviceView();
   _otherWidgetShown = false;
   _queueShown = false;
 
-  _deviceView->setSortingEnabled(true);
-  _deviceView->sortByColumn(0, Qt::AscendingOrder);
-  _deviceView->header()->hide();
-  _deviceView->setAlternatingRowColors(true);
 
-  //setup the filesystem view
-  _fsModel = new QDirModel();
-  _fsView = new QListView();
-  _fsView->setModel(_fsModel);
-  _fsView->setAlternatingRowColors(true);
-  _fsView->setSelectionBehavior(QAbstractItemView::SelectRows);
-  _fsView->setSelectionMode(QAbstractItemView::ExtendedSelection);
-  _queueView = new QListView();
-  _queueView->setModel(_fsModel);
-  _queueView->resize(QSize(300,300));
-
-  //setup the quick transfer toolbar
-  _quickTools = new QToolBar();
-  _quickTools->setOrientation(Qt::Vertical);
-  _quickTools->setToolButtonStyle(Qt::ToolButtonTextBesideIcon);
-  _quickTools->setFloatable(false);
-  _quickTools->setIconSize(QSize(12,12));
-  _quickTools->setMovable(false);
-  _quickTools->setContentsMargins(0,0,0,-3);
-
+  setupFileSystemView();
 
   _fsDeviceSplit = new QSplitter();
   _queueSplit = new QSplitter();
   _queueSplit->setOrientation(Qt::Vertical);
   _fsDeviceSplit->setOrientation(Qt::Horizontal);
+
   //add the widgets to the layout
   _fsDeviceSplit->addWidget(_fsView);
   _fsDeviceSplit->addWidget(_deviceView);
@@ -112,13 +90,25 @@ void DeviceExplorer::setupToolBars()
   _tools->setMovable(false);
   _tools->setContentsMargins(0,0,0,-3);
   _fsDeviceSplit->setContentsMargins(0,-1,0,1);
-
+// Incoroporates the progress bar as well 
 
   _layout->addWidget(_tools, 0,0);
   setupCommonTools();
   setupAlbumTools();
   setupPlaylistTools();
   setupFileTools();
+}
+
+void DeviceExplorer::setupDeviceView() 
+{
+  _deviceView = new QTreeView();
+  _deviceView->setModel(_albumModel);
+  _deviceView->setSelectionBehavior(QAbstractItemView::SelectRows);
+  _deviceView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  _deviceView->setSortingEnabled(true);
+  _deviceView->sortByColumn(0, Qt::AscendingOrder);
+  _deviceView->header()->hide();
+  _deviceView->setAlternatingRowColors(true);
 }
 
 
@@ -172,6 +162,39 @@ void DeviceExplorer::ShowFiles()
     hidePlaylistTools();
     showFileTools();
 }
+void DeviceExplorer::UpdateProgressBar(const QString& label,
+                                       count_t percent)
+{
+  qDebug() << "Update Progress Bar called" << endl;
+  if (!_progressBar)
+    return;
+  else if (_progressBar->isHidden())
+    _progressBar->show();
+  _progressBar->setFormat(label);
+  _progressBar->setValue(percent);
+  if (percent == 100)
+  {
+    qDebug() << "Percent is now 1";
+    updateDeviceSpace();
+  }
+  else
+    qDebug() << "Percent is now" << percent ;
+}
+
+
+/** Sets the DeviceExplorers progress bar to @param in_progressbar
+ * @param in_progerssbar the progress bar to update when an event happens
+ * @see UpdateProgressBar;
+ *
+ */
+void DeviceExplorer::SetProgressBar(QProgressBar* in_progressbar)
+{
+  _progressBar = in_progressbar;
+  _progressBar->setTextVisible(true);
+  updateDeviceSpace();
+}
+
+
 
 /**
  * Displays the preferences widget and hides the filesystem and device views
@@ -242,6 +265,75 @@ void DeviceExplorer::setupConnections()
 
   connect(_transferTrackToDevice, SIGNAL(triggered(bool)),
           this, SLOT(TransferTrackToDevice()));
+  connect(_transferFromDevice, SIGNAL(triggered(bool)),
+          this, SLOT(TransferFromDevice()));
+  connect(_device, SIGNAL(UpdateProgress(QString, count_t)), 
+          this, SLOT(UpdateProgressBar(QString, count_t)));
+        
+}
+
+void DeviceExplorer::updateDeviceSpace()
+{
+  if (!_progressBar)
+    return;
+  else if (_progressBar->isHidden())
+    _progressBar->show();
+
+  uint64_t total;
+  uint64_t free;
+  _device->FreeSpace(&total, &free);
+  uint64_t used = total - free;
+
+  double displayTotal_kb = total/1024;
+  double displayTotal_mb = displayTotal_kb/1024;
+  double displayTotal_gb = displayTotal_mb/1024;
+
+  QString totalDisplaySize = QString("%1 GB").arg(displayTotal_gb, 0, 'f', 2,
+                                              QLatin1Char(' ' ));
+  if (displayTotal_gb < 1)
+  {
+      totalDisplaySize = QString("%1 MB").arg(displayTotal_mb, 0, 'f', 2, 
+                                         QLatin1Char( ' ' ));
+  }
+  else if (displayTotal_mb < 1)
+  {
+      totalDisplaySize = QString("%1 KB").arg(displayTotal_kb, 0, 'f', 2, 
+                                          QLatin1Char( ' ' ));
+  }
+  else if (displayTotal_mb < 1 && displayTotal_gb < 1) 
+  {
+    totalDisplaySize = QString("%1 B").arg(total, 0, 'f', 2, 
+                                      QLatin1Char( ' ' ));
+  }
+
+  double displayUsed_kb = used/1024;
+  double displayUsed_mb = displayUsed_kb/1024;
+  double displayUsed_gb = displayUsed_mb/1024;
+
+  QString usedDisplaySize = QString("%1 GB").arg(displayUsed_gb, 0, 'f', 2, 
+                                             QLatin1Char( ' ' ));
+  if (displayUsed_gb < 1)
+  {
+      usedDisplaySize = QString("%1 MB").arg(displayUsed_mb, 0, 'f', 2, 
+                                         QLatin1Char( ' ' ));
+  }
+  else if (displayUsed_mb < 1)
+  {
+      usedDisplaySize = QString("%1 KB").arg(displayUsed_kb, 0, 'f', 2,
+                                         QLatin1Char( ' ' ));
+  }
+  else if (displayUsed_mb <1 && displayUsed_gb < 1)
+  {
+      usedDisplaySize = QString("%1 B").arg(used, 0, 'f', 2, 
+                                        QLatin1Char( ' ' ));
+  }
+  QString label =  usedDisplaySize + " of " + totalDisplaySize ;
+  count_t percent = (((double) used / (double) total) * 100);
+
+  qDebug() << "Free space reported: " << free;
+  qDebug() << "Total space reported: " << total;
+  _progressBar->setFormat(label);
+  _progressBar->setValue(percent);
 }
 
 void DeviceExplorer::showAlbumTools()
@@ -256,7 +348,9 @@ void DeviceExplorer::showAlbumTools()
   _fsView->addAction(_sync);
   _deviceView->addAction(_transferFromDevice);
   _deviceView->addAction(_delete);
+  _view =AlbumsView;
 }
+
 
 void DeviceExplorer::showPlaylistTools()
 {
@@ -265,6 +359,9 @@ void DeviceExplorer::showPlaylistTools()
     _playlistActionList[i]->setVisible(true);
   _tools->setMinimumSize(12, 12);
   clearActions();
+  _deviceView->addAction(_transferFromDevice);
+  _deviceView->addAction(_delete);
+  _view = PlaylistView;
 }
 
 void DeviceExplorer::showFileTools()
@@ -273,6 +370,9 @@ void DeviceExplorer::showFileTools()
      _fileActionList[i]->setVisible(true);
   _tools->setMinimumSize(12, 13);
   clearActions();
+  _deviceView->addAction(_transferFromDevice);
+  _deviceView->addAction(_delete);
+  _view = FileView;
 }
 
 void DeviceExplorer::hideAlbumTools()
@@ -297,7 +397,6 @@ void DeviceExplorer::hideFileTools()
 //Must be done before all others
 void DeviceExplorer::setupCommonTools()
 {
-
   _transferFromDevice = new QAction( 
     QIcon(":/pixmaps/ActionBar/TransferFromDevice.png"), 
     QString("Transfer From Device"), NULL); 
@@ -366,6 +465,18 @@ void DeviceExplorer::setupFileTools()
     _tools->addAction( _fileActionList[i]);
 }
 
+void DeviceExplorer::setupFileSystemView()
+{
+  //setup the filesystem view
+  _fsModel = new QDirModel();
+  _fsView = new QListView();
+  _fsView->setModel(_fsModel);
+  _fsView->setAlternatingRowColors(true);
+  _fsView->setSelectionBehavior(QAbstractItemView::SelectRows);
+  _fsView->setSelectionMode(QAbstractItemView::ExtendedSelection);
+  _queueView = new QListView();
+  _queueView->setModel(_fsModel);
+}
 
 void DeviceExplorer::setupAlbumTools()
 {
@@ -400,13 +511,14 @@ void DeviceExplorer::clearActions()
 
 void DeviceExplorer::setupMenus()
 {
-
-
   _fsView->setContextMenuPolicy(Qt::ActionsContextMenu);
   _deviceView->setContextMenuPolicy(Qt::ActionsContextMenu);
   _deviceView->setContextMenuPolicy(Qt::ActionsContextMenu);
   setContextMenuPolicy(Qt::ActionsContextMenu);
 }
+
+
+
 
 void DeviceExplorer::TransferTrackToDevice()
 {
@@ -414,13 +526,13 @@ void DeviceExplorer::TransferTrackToDevice()
     QList<QString> fileList;
     QItemSelectionModel* selectedModel = _fsView->selectionModel();
     QModelIndexList idxList = selectedModel->selectedRows();
-    if (idxList.size() == 0)
+    if (idxList.empty())
     {
       qDebug() << "nothing selected!";
       return;
     }
 
-    while(idxList.size() > 0)
+    while(!idxList.empty())
     {
       QString fpath = _fsModel->filePath(idxList.front());
       fileList.push_back(fpath);
@@ -430,9 +542,57 @@ void DeviceExplorer::TransferTrackToDevice()
     selctedModel = _deviceView->selectionModel();
     idxList = selectedModel->selectedRows();
 */
-    while (fileList.size() > 0)
+    while (!fileList.empty())
     {
       _device->TransferTrack(fileList.front());
       fileList.pop_front();
+    }
+}
+
+void DeviceExplorer::TransferFromDevice()
+{
+    qDebug() << "called Transfer from device";
+    QModelIndex idx = _fsView->rootIndex();
+
+    if (!idx.isValid())
+    {
+      qDebug() << "Current directory is invalid" ;
+      return;
+    }
+
+    QFileInfo info = _fsModel->fileInfo(idx); 
+    assert(info.isDir());
+    if (!info.isWritable())
+    {
+      qDebug() << "Current directory is not writable:"  << info.canonicalFilePath();
+      return;
+    }
+
+    QString transferPath = info.canonicalFilePath();
+    QItemSelectionModel* selectedModel = _deviceView->selectionModel();
+    QModelIndexList idxList = selectedModel->selectedRows();
+    if (idxList.empty())
+    {
+      qDebug() << "nothing selected!";
+      return;
+    }
+    MTP::GenericObject* obj;
+    while(!idxList.empty())
+    {
+      QModelIndex temp = idxList.front();
+      if (_view == AlbumsView)
+        temp = _albumModel->mapToSource(temp);
+      else if (_view == PlaylistView)
+        temp = _plModel->mapToSource(temp);
+      else if (_view == FileView)
+        temp = _dirModel->mapToSource(temp);
+      else
+        assert(false);
+
+      obj = (MTP::GenericObject*) temp.internalPointer();
+//      QString name = _albumModel->data(0, 0, idxList.front);
+//      qDebug() << "Transfer this: " << name << "from device";
+      _device->TransferFrom(obj, transferPath);
+      idxList.pop_front();
     }
 }

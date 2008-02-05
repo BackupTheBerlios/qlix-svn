@@ -44,5 +44,6 @@ RESOURCES += Qlix.qrc
 unix {
   DEFINES += LINUX_SIGNALS
   DEFINES += QLIX_DEBUG
-  LIBS += -lmtp
+  LIBS += -lmtp -ltag
+  INCLUDEPATH +=/usr/include/
 }

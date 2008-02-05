@@ -14,10 +14,13 @@ GenericObject::GenericObject(MtpObjectType in_type, uint32_t id) :
                              _id(id)
 { }
 
+GenericObject::~GenericObject() {} 
+
 /** 
  * Returns the ID of this object
  */
 count_t GenericObject::ID() { return _id; }
+const char* const  GenericObject::Name() const { return ""; }
 
 /** Simple function to get the type of the current MTP object
  * @return returns the type of the GenericObject
@@ -30,7 +33,8 @@ MtpObjectType GenericObject::Type() { return _type; }
  * @return a new Track object
  */
 
-Track::Track(LIBMTP_track_t* in_track) :            GenericObject(MtpTrack, in_track->item_id),
+Track::Track(LIBMTP_track_t* in_track) :
+            GenericObject(MtpTrack, in_track->item_id),
             _parentAlbum (NULL),
             _parentPlaylist(NULL)
 {
@@ -45,6 +49,47 @@ char const * const Track::Name() const
 {
   return _rawTrack->title;
 }
+
+/** Retreives the name of the wrapped Album
+ * @return the album's UTF8 name 
+ */
+char const * const Track::AlbumName() const
+{
+  return _rawTrack->album;
+}
+/** Returns the raw track that this object wraps around
+ * @return the raw track;
+ */
+LIBMTP_track_t* const Track::RawTrack() const
+{
+  return _rawTrack;
+}
+
+
+/** Retreives the file name of the wrapped Track
+ * @return the tracks's UTF8 name 
+ */
+char const * const Track::FileName() const
+{
+  return _rawTrack->filename;
+}
+
+/** Retreives the Artist name of the wrapped Track
+ * @return the tracks's UTF8 name 
+ */
+char const * const Track::ArtistName() const
+{
+  return _rawTrack->artist;
+}
+
+/** Retreives the genre of the wrapped Track
+ * @return the tracks's UTF8 name 
+ */
+char const * const Track::Genre() const
+{
+  return _rawTrack->genre;
+}
+
 
 /** Returns the parent id of this track
  * @return the parent id of this track
@@ -82,11 +127,10 @@ Playlist* Track::ParentPlaylist() const { return _parentPlaylist; }
  * @param in_sample A pointer to the LIBMTP_filesampledata_t
  * @return a new File object
  */
-File::File(LIBMTP_file_t* in_file, const LIBMTP_filesampledata_t& in_sample) : 
+File::File(LIBMTP_file_t* in_file) : 
            GenericObject (MtpFile, in_file->item_id)
 {
   _rawFile = in_file;
-  _sampleData = in_sample;
   _parent = NULL;
 }
 
@@ -245,13 +289,27 @@ const LIBMTP_filesampledata_t& Album::SampleData() const
 }
 
 /** Adds the passed track as s subtrack to this album
- * @param in_track the track to ass as a subtrack to this folder
+ * @param in_track the track to add as a subtrack to this folder
  */
-void Album::AddChildTrack(Track* in_track) 
+//FIXME updateInternalStruct should not have a default value
+//TODO find out if updating the internal strucutre actuallly deletes the 
+//     OBJECT ID array
+void Album::AddChildTrack(Track* in_track, bool updateInternalStruct) 
 {
   _childTracks.push_back(in_track);
   in_track->SetParentAlbum(this);
   in_track->rowid = _childTracks.size();
+  if (updateInternalStruct)
+  {
+    count_t trackCount = _rawAlbum->no_tracks;
+    count_t* tracks = new count_t[trackCount+1];
+    for (count_t i =0; i < trackCount; i++)
+      tracks[i] = _rawAlbum->tracks[i];
+
+    tracks[trackCount+1] = in_track->ID();
+    _rawAlbum->no_tracks = trackCount +1;
+//    LIBMTP_Update_Album(_device, _rawAlbum);
+  }
 }
 
 /** Retreives the name of the wrapped Album
@@ -265,7 +323,7 @@ char const * const Album::Name() const
 /** Retreives the artist name of the wrapped Album
  * @return the albums's artist name in UTF8
  */
-char const * const Album::Artist() const
+char const * const Album::ArtistName() const
 {
   cout << "Artist: " << _rawAlbum->artist << endl;
   return _rawAlbum->artist;

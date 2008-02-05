@@ -11,10 +11,14 @@
  * @file
  * This file will detail the thread level protocol between the GUI and the device
  */
-enum MtpCommandCode
+namespace MTPCMD
+{
+enum CommandCode
 {
     Initialize,
     SendFile,
+    GetObj,
+    CreateFSFolder
     /* Not implemented yet
     Connect,
     Disconnect,
@@ -31,21 +35,48 @@ enum MtpCommandCode
     */
 }; 
 
-struct MtpCommand
+struct GenericCommand 
 {
-  MtpCommandCode ComCode;
-  MtpCommandCode GetCommand()  { return ComCode; }
+  CommandCode ComCode;
+  CommandCode GetCommand()  { return ComCode; }
 };
 
-struct MtpCommandSendFile : MtpCommand
+struct SendFileCmd : GenericCommand
 {
     QString Path;
     bool IsTrack;
-    MtpCommandSendFile (QString in_path, bool in_asTrack = false) 
+    uint32_t ParentID;
+    SendFileCmd (QString in_path, uint32_t in_parent, 
+                        bool in_isTrack = false) 
     {
         Path = in_path;
-        IsTrack = in_asTrack;
+        ParentID = in_parent;
+        IsTrack = in_isTrack;
         ComCode = SendFile;
+    }
+};
+
+struct GetObjCmd : GenericCommand
+{
+    QString Path;
+    uint32_t ID;
+    GetObjCmd (uint32_t file_id, const QString& in_path)
+    {
+        ID = file_id;
+        Path = in_path;
+        ComCode = GetObj;
+    }
+};
+
+struct CreateFSFolderCmd: GenericCommand
+{
+    QString Path;
+    QString Name;
+    CreateFSFolderCmd(const QString& in_path, const QString& in_name)
+    {
+      Path = in_path;
+      Name = in_name;
+      ComCode = CreateFSFolder;
     }
 };
 
@@ -63,9 +94,9 @@ struct MtpDeviceInfo
 
 struct MtpUpdate
 {
-    MtpCommandCode ComCode;
+    Code ComCode;
     bool Success;
-    MtpCommandCode GetCommand()
+    Code GetCommand()
     {
         return ComCode;
     }
@@ -74,9 +105,9 @@ bool isSuccess() {
     }
 };
 
-struct MtpCommandGetDeviceInfo : MtpCommand
+struct GetDeviceInfo : GenericCommand
 {
-    MtpCommandGetDeviceInfo ( void )
+    GetDeviceInfo ( void )
     {
         ComCode = GetDeviceInfo;
     }
@@ -89,9 +120,9 @@ struct MtpUpdateDeviceInfo
     MtpDeviceInfo Info;
 };
 
-struct MtpCommandConnect : MtpCommand
+struct Connect : GenericCommand
 {
-    MtpCommandConnect (void )
+    Connect (void )
     {
         ComCode = Connect;
     }
@@ -108,35 +139,21 @@ struct MtpUpdateConnect: MtpUpdate
     }
 };
 
-struct MtpCommandDisconnect : MtpCommand
+struct Disconnect : GenericCommand
 {
-    MtpCommandDisconnect ( void )
+    Disconnect ( void )
     {
         ComCode= Disconnect;
     }
 };
 
 
-struct MtpCommandGetFile : MtpCommand
-{
-    QString FileName;
-    uint32_t ID;
-    bool IsRootImage;
-    MtpCommandGetFile (uint32_t file_id, const QString& in_FileName)
-    {
-        ID = file_id;
-        FileName = in_FileName;
-        ComCode = GetFile;
-        IsRootImage = false;
-    }
-};
 
-
-struct MtpCommandDelete : MtpCommand
+struct Delete : GenericCommand
 {
     uint32_t FolderID;
     int FileID;
-    MtpCommandDelete (uint32_t in_Folderid, int in_FileID)
+    Delete (uint32_t in_Folderid, int in_FileID)
     {
         FolderID = in_Folderid;
         FileID = in_FileID;
@@ -145,11 +162,11 @@ struct MtpCommandDelete : MtpCommand
 };
 
 
-struct MtpCommandNewDirectory : MtpCommand
+struct NewDirectory : GenericCommand
 {
     uint32_t ParentID;
     QString Name;
-    MtpCommandNewDirectory(const QString& in_name, uint32_t in_parent_id)
+    NewDirectory(const QString& in_name, uint32_t in_parent_id)
     {
         ComCode = CreateDirectory; 
         ParentID = in_parent_id;
@@ -158,12 +175,12 @@ struct MtpCommandNewDirectory : MtpCommand
 };
 
  Not used: DirNode 
-struct MtpCommandTransferSystemFolder : MtpCommand
+struct TransferSystemFolder : GenericCommand
 {
     QFileInfoList Files;
     DirNode* Parent;
     QString DirName;
-    MtpCommandTransferSystemFolder(QDir folder, DirNode* parent)
+    TransferSystemFolder(QDir folder, DirNode* parent)
     {
         ComCode = TransferSystemFolder;
         DirName = folder.dirName();
@@ -196,8 +213,9 @@ struct MtpUpdateTransfer : MtpUpdate
 };
 struct MtpThreadData
 {
-    MtpCommand* Command;
+    * Command;
 };
 
 */
+}
 #endif

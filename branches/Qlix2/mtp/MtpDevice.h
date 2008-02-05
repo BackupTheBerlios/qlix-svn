@@ -4,6 +4,9 @@
 #include <string>
 #include <map>
 #include <iostream>
+//Taglib includes
+#include <tag.h>
+#include <fileref.h>
 #include "types.h"
 #include "mtp/MtpObject.h"
 using namespace std;
@@ -28,10 +31,19 @@ public:
   bool BatterLevelSupport() const;
   float BatterLevel() const;
 
-  void SetProgressFunction(LIBMTP_progressfunc_t );
-  void ClearObjectMappings();
-  void Retreive(count_t , char const * const );
+  void SetProgressFunction(LIBMTP_progressfunc_t, const void* const );
+  bool Fetch(uint32_t, char const * const );
+  bool TransferTrack(const char*, uint32_t, MTP::Track*);
+  MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile,
+                                 const char*,
+                                 uint64_t,
+                                 uint32_t, 
+                                 LIBMTP_filetype_t);
+  MTP::File* SetupFileTransfer(const char*,  uint64_t,  count_t, 
+                               LIBMTP_filetype_t);
+  bool UpdateSpaceInformation();
 
+  void ClearObjectMappings();
   count_t FileCount() const;
   count_t AlbumCount() const;
   count_t PlaylistCount() const;
@@ -46,8 +58,9 @@ public:
   MTP::Folder* RootFolder(count_t idx) const;
   MTP::File* RootFile(count_t idx) const;
 
+  bool CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album);
   void ReleaseDevice();
-
+  bool FreeSpace(uint64_t*, uint64_t*);
   LIBMTP_mtpdevice_t* RawDevice() const;
 private:
   LIBMTP_mtpdevice_t* _device;
@@ -59,7 +72,11 @@ private:
   count_t _maxBatteryLevel;
   count_t _currentBatteryLevel;
   bool _batteryLevelSupport;
+  uint64_t _freeSpace;
+  uint64_t _totalSpace;
+
   LIBMTP_progressfunc_t _progressFunc;
+  const void* _progressData;
 
   map<uint32_t, MTP::GenericObject*> _objectMap;
   map<uint32_t, MTP::Track*> _trackMap;
@@ -82,10 +99,14 @@ private:
   void createFileStructure();
   void createAlbumStructure();
   void createPlaylistStructure();
+  
 
 
   //Debug functions
   void dbgPrintSupportedFileTypes();
   void dbgPrintFolders(MTP::Folder*, count_t);
+
+  //Transfer functions
+
 };
 #endif 

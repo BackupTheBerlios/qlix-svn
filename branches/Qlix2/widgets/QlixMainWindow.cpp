@@ -3,7 +3,6 @@
 QlixMainWindow::QlixMainWindow(MtpSubSystem* in_subsystem)
 {
   setMinimumSize(800,500);
-  _currentView = Invalid;
 
   _watchDog = new MtpWatchDog(in_subsystem);
   _deviceChooser = new DeviceChooser(this);
@@ -31,16 +30,30 @@ void QlixMainWindow::DeviceSelected(QMtpDevice* in_device)
 #ifdef QLIX_DEBUG
   qDebug() << "Device selected: " << in_device;
 #endif
+  setupStatusBar();
   _deviceChooser->hide();
   _currentDevice = in_device;
 
   _deviceExplorer = new DeviceExplorer(in_device, this);
+  _deviceExplorer->SetProgressBar(_progressBar);
   setupToolBar();
   setupActions();
   setupConnections();
   setCentralWidget(_deviceExplorer);
   _deviceExplorer->setContentsMargins(0,-10,0,0);
   _albumlistAction->trigger();
+}
+
+void QlixMainWindow::setupStatusBar()
+{
+  statusBar()->setMaximumHeight(20);
+  _progressBar = new QProgressBar();
+  _progressBar->setTextVisible(false);
+  _progressBar->setRange(0, 100);
+  _progressBar->setMaximumSize(140, 20);
+  _progressBar->setAlignment(Qt::AlignRight);
+  statusBar()->insertPermanentWidget(0, _progressBar, 0);
+  _progressBar->hide();
 }
 
 void QlixMainWindow::setupToolBar()
@@ -142,11 +155,9 @@ void QlixMainWindow::setupConnections()
   //And show the right actions
   connect(_albumlistAction, SIGNAL(triggered(bool)),
           _deviceExplorer, SLOT(ShowAlbums()));
-  //And show the right actions
+
   connect(_playlistAction, SIGNAL(triggered(bool)),
           _deviceExplorer, SLOT(ShowPlaylists()));
-  connect(_playlistAction, SIGNAL(triggered(bool)),
-          this, SLOT(showPlaylistActions()));
   
   connect(_filelistAction, SIGNAL(triggered(bool)),
           _deviceExplorer, SLOT(ShowFiles()));
@@ -156,7 +167,7 @@ void QlixMainWindow::setupConnections()
 
   connect(_manageDeviceAction, SIGNAL(triggered(bool)),
           _deviceExplorer, SLOT(ShowDeviceManager()));
- connect(_preferencesAction, SIGNAL(triggered(bool)),
+  connect(_preferencesAction, SIGNAL(triggered(bool)),
           _deviceExplorer, SLOT(ShowPreferences()));
 
 }

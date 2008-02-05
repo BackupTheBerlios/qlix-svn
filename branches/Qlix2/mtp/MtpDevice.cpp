@@ -3,6 +3,7 @@
 //TODO Add playlist feature
 //TODO Improve error handling
 //TODO  Should object references returns be of const types?
+//TODO 64 bit intergers should be used for settings up filesizes
 #include "MtpDevice.h"
 /**
  * Creates a MtpDevice
@@ -76,7 +77,7 @@ void MtpDevice::Initialize()
 {
   if (!_device)
     return;
-  _progressFunc= NULL;
+//  _progressFunc= NULL;
    _name = LIBMTP_Get_Friendlyname(_device);
 
   _version = LIBMTP_Get_Deviceversion(_device);
@@ -111,6 +112,7 @@ void MtpDevice::Initialize()
   if (types)
     free(types);
   createObjectStructure();
+  UpdateSpaceInformation();
 }
 
 /**
@@ -118,6 +120,12 @@ void MtpDevice::Initialize()
  */
 count_t MtpDevice::FileCount() const
 { return _files.size(); }
+
+bool MtpDevice::FreeSpace(uint64_t* total, uint64_t* free)
+{
+  *total = _totalSpace;
+  *free = _freeSpace;
+}
 
 
 /**
@@ -204,18 +212,24 @@ MTP::Playlist* MtpDevice::Playlist(count_t idx) const
 
 
 /**
- * Retreives the object to the specificed path
+ * Retrieves the object to the specificed path
  * @param in_id the item id of the requested Mtp object
  * @param path the path to retreive to
  */
-void MtpDevice::Retreive(count_t in_id, char const * const path)
+bool MtpDevice::Fetch(uint32_t in_id, char const * const path)
 {
   if (!_device)
-    return;
+    return false;
 //TODO get error log
-  LIBMTP_Get_File_To_File(_device, in_id, path, NULL, NULL);
+  int ret= LIBMTP_Get_File_To_File(_device, in_id, path, 
+                                   _progressFunc, _progressData);
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+  return true; 
 }
- 
 
 
 /**
@@ -300,8 +314,10 @@ void MtpDevice::processErrorStack()
  * Sets the callback progress function for operations with the MTP device
  * @param in_func the callback function to invoke during MTP operations
  */
-void MtpDevice::SetProgressFunction(LIBMTP_progressfunc_t in_func)
+void MtpDevice::SetProgressFunction(LIBMTP_progressfunc_t in_func,
+                                    const void* const in_data)
 {
+  _progressData = in_data;
   _progressFunc = in_func;
 }
 
@@ -319,10 +335,7 @@ void MtpDevice::createObjectStructure()
     //we should be careful to check the map's size before we check for 
     //crosslinks
     count_t size = _objectMap.size();
-    LIBMTP_filesampledata_t temp;
-    LIBMTP_Get_Representative_Sample(_device, fileRoot->item_id, &temp); 
-
-    MTP::File* currentFile = new MTP::File(fileRoot, temp);
+    MTP::File* currentFile = new MTP::File(fileRoot);
     _files.push_back(currentFile);
     MTP::GenericObject* previous = _objectMap[currentFile->ID()];
     _objectMap[currentFile->ID()] = currentFile; 
@@ -609,13 +622,13 @@ void MtpDevice::createAlbumStructure()
       //sanity check
       count_t size = _objectMap.size();
       obj = _objectMap[track_id];
-//      assert(_objectMap.size() == size);
+//      assert(_objectMap.size() == size+1); //because its crosslinked with tracks i guess
       if (obj->Type() != MtpTrack)
       {
         cerr << "Current track: " << track_id << "is crosslinked" << endl;
         continue;
       }
-      parentAlbum->AddChildTrack( (MTP::Track*) obj);
+      parentAlbum->AddChildTrack((MTP::Track*) obj, false);
     }
     parentAlbum->SetInitialized();
   }
@@ -645,76 +658,75 @@ void MtpDevice::createPlaylistStructure()
         cerr << "Current track: " << track_id << "is crosslinked" << endl;
         continue;
       }
-      parentPlaylist->AddChildTrack( (MTP::Track*) obj);
+      parentPlaylist->AddChildTrack( (MTP::Track*) obj );
     }
     parentPlaylist->SetInitialized();
   }
 }
 
-bool MtpDevice::setupTrackForTransfer(const char* in_location, uint32_t in_parentID, LIBMTP_track_t* newtrack)
+bool MtpDevice::TransferTrack(const char* in_path, uint32_t parent_id,  
+                              MTP::Track* track)
 {
-    string unknownString("Unknown");
-    const char* UtfLocation = in_location;
-    TagLib::FileRef tagFile(UtfLocation, true, TagLib::AudioProperties::Accurate);
-    //qDebug() <<"File path is: " + loc ; 
-    if (tagFile.isNull())
-    {
-        qDebug() << "Not a recognizable track format" ;
-        return false;
-    }
-    
-//Copy the album
-    QString qAlbumTag = TStringToQString(tagFile.tag()->album());
+  int ret = LIBMTP_Send_Track_From_File(_device, in_path, track->RawTrack(),
+                                        _progressFunc, _progressData, 
+                                        parent_id);
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+  UpdateSpaceInformation();
+  return true;
+}
+
+MTP::Track* MtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
+                                          const char* in_filename,
+                                          uint64_t in_size,
+                                          uint32_t in_parentID, 
+                                          LIBMTP_filetype_t in_type)
+{
+    TagLib::String unknownString = "Unknown";
+    //Copy the album
+    TagLib::String albumTag = tagFile.tag()->album();
     char* album;
-    if (qAlbumTag.isEmpty() || qAlbumTag.toUpper() == "UNKNOWN")
-        album = strdup(unknownString.toUtf8().data());
+    if (albumTag.isEmpty() || albumTag.upper() == TagLib::String("UNKNOWN"))
+        album = strdup(unknownString.toCString(true));
     else
-        album = strdup(qAlbumTag.toUtf8().data());
+        album = strdup(albumTag.toCString(true));
+    cout << "Album sanity check: " << album << endl;
 
-    QString qalbum2 = QString::fromUtf8(album);
-    qDebug() << "Album sanity check2: " << qalbum2;
-    qDebug() << "Album sanity check3: " << qAlbumTag;
-
-//Copy the title
-    QString qTitleTag = TStringToQString(tagFile.tag()->title());
+    //Copy the title
     char* title;
-    if (qTitleTag.isEmpty() || qTitleTag.toUpper() == "UNKNOWN")
-        title = strdup(unknownString.toUtf8().data());
+    TagLib::String titleTag = tagFile.tag()->title();
+    if (titleTag.isEmpty() || titleTag.upper() == TagLib::String("UNKNOWN"))
+        title = strdup(unknownString.toCString(true));
     else
-        title = strdup(qTitleTag.toUtf8().data());
+        title = strdup(titleTag.toCString(true));
+    cout << "Title sanity check: " << titleTag << endl;
 
-    QString qtitle2 = QString::fromUtf8(title);
-    qDebug() << "Title sanity check2: " << qtitle2;
-    qDebug() << "Title sanity check3: " << qTitleTag;
-
-////////////////////Copy the artist
-    QString qArtistTag = TStringToQString(tagFile.tag()->artist());
+    //Copy the artist
     char* artist;
-    if (qArtistTag.isEmpty() || qArtistTag.toUpper() == "UNKNOWN")
-        artist = strdup(unknownString.toUtf8().data());
+    TagLib::String artistTag = tagFile.tag()->artist();
+    if (artistTag.isEmpty() || artistTag.upper() == TagLib::String("UNKNOWN"))
+        artist = strdup(unknownString.toCString(true));
     else
-        artist = strdup(qArtistTag.toUtf8().data());
+        artist = strdup(artistTag.toCString(true));
+    cout << "Artist sanity check: " <<  artist << endl;
 
-
-    QString qartist2 = QString::fromUtf8(artist);
-    qDebug() << "Artist sanity check2: " << qartist2;
-    qDebug() << "Artist sanity check3: " << qArtistTag;
-
-////////////////////Copy the genre
-    QString qGenreTag = TStringToQString(tagFile.tag()->genre());
+    //Copy the genre
+    TagLib::String genreTag = tagFile.tag()->genre();
     char* genre;
-    if (qGenreTag.isEmpty() || qGenreTag.toUpper() == "UNKNOWN")
-        genre =  strdup(unknownString.toUtf8().data());
+    if (genreTag.isEmpty() || genreTag.upper() == TagLib::String("UNKNOWN"))
+        genre =  strdup(unknownString.toCString(true));
     else
-        genre = strdup(qGenreTag.toUtf8().data());
+        genre = strdup(genreTag.toCString(true));
+    cout<< "Genre sanity check: " << genre << endl;
 
-    QString qgenre2 = QString::fromUtf8(genre);
-    qDebug() << "Genre sanity check2: " << qgenre2;
-    qDebug() << "Genre sanity check3: " << qGenreTag;
-
-////////////////////Copy the filename
-    const char* actualFilename = fileinfo.fileName().toUtf8().data();
-    char* filename = strdup(actualFilename);
+    //Copy the filename
+    //TODO why doesn't this work?
+    char* filename = strdup(in_filename);
+    cout << "Filename sanity check: " << filename << endl;
+    LIBMTP_track_t* newtrack = LIBMTP_new_track_t();
 
     newtrack->parent_id = in_parentID;
     newtrack->title = title;
@@ -725,9 +737,84 @@ bool MtpDevice::setupTrackForTransfer(const char* in_location, uint32_t in_paren
     newtrack->tracknumber = tagFile.tag()->track();
     newtrack->duration  = tagFile.audioProperties()->length()*1000;
     newtrack->bitrate   = tagFile.audioProperties()->bitrate();
-    newtrack->filesize  = QFile(fileinfo.canonicalFilePath()).size();
-    newtrack->filetype = FileNode::GetMtpType((fileinfo.suffix()));
+    newtrack->filesize  = in_size;
+    newtrack->filetype = in_type;
     newtrack->next = NULL;
-    return true;
+    return new MTP::Track(newtrack);
+}
+
+/**
+ * This function creates a MTP::File object filled with sane values
+ * @param in_filename the name of the file
+ * @param in_si the size of the file
+ * @param in_parentid the parent folder of this object, if its 0, its on the
+ *        root level
+ * @param in_type the LIBMTP_filetype_t of file
+ */
+MTP::File* MtpDevice::SetupFileTransfer(const char* in_filename, 
+                                         uint64_t in_sz, 
+                                         count_t in_parentid, 
+                                         LIBMTP_filetype_t in_type)
+{
+  LIBMTP_file_t* file = LIBMTP_new_file_t();
+  file->filename = strdup(in_filename);
+  file->filesize = in_sz;
+  file->parent_id = in_parentid;
+  file->filetype = in_type;
+  return new MTP::File(file);
+}
+
+/**
+ * This function updates the space usage information, it should be called at
+ * every function call that could potentially change the space usage of the 
+ * device
+ * @return true if successfully retreived, false otherwise
+ */
+bool MtpDevice::UpdateSpaceInformation()
+{
+  if (!_device)
+    return false;
+  int ret = LIBMTP_Get_Storage(_device, LIBMTP_STORAGE_SORTBY_NOTSORTED);
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+  (_totalSpace) = _device->storage->MaxCapacity;
+  (_freeSpace)  = _device->storage->FreeSpaceInBytes;
+  return true;
+}
+
+/**
+ * This function creates a new album on the device, using the information from
+ * the track that is passed as a param. This function assumes that this 
+ * album's name is unique on the device. 
+ * @param in_track the track that is used as a template for the album's name,
+ *        artist, and genre fields.
+ * @param out_album the newly allocated MTP::Album, if the operation fails
+ *        this value is NULL
+ * @return true if successfull false otherwise
+ */
+bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
+{
+  LIBMTP_album_t* newAlbum = LIBMTP_new_album_t();
+  newAlbum->name = strdup(in_track->Name());
+  newAlbum->artist = strdup(in_track->ArtistName());
+  newAlbum->genre = strdup(in_track->Genre());
+  newAlbum->tracks  = new uint32_t;
+  *(newAlbum->tracks) = in_track->ID();
+  newAlbum->no_tracks = 1;
+  newAlbum->next = NULL;
+  int ret =  LIBMTP_Create_New_Album(_device, newAlbum, 0);
+  if (ret != 0)
+  {
+    (*out_album) = NULL;
+    processErrorStack();
+    return false;
+  }
+  UpdateSpaceInformation();
+  LIBMTP_filesampledata_t sample;
+  (*out_album) = new MTP::Album(newAlbum, sample);
+  return true;
 }
 

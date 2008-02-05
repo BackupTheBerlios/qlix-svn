@@ -16,4 +16,10 @@ enum MtpObjectType
   MtpAlbum,
   MtpPlaylist
 };
+
+enum QlixProgressType
+{
+  FreeSpaceUsage,
+  TransferAmount
+};
 #endif

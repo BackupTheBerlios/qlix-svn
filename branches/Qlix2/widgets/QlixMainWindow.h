@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QVector>
+#include <QStatusBar>
 #include <QString>
 #include <QToolBar>
 #include <QLabel>
@@ -30,16 +31,6 @@ protected:
 //  void closeEvent (QCloseEvent* eventh
 
 private slots:
-/*
-  void showAlbumActions();
-  void hideAlbumActions();
-
-  void showPlaylistActions();
-  void hidePlaylistActions();
-
-  void showFileActions();
-  void hideFileActions();
-  */
 
 private:
   enum ToolbarView
@@ -54,24 +45,22 @@ private:
   
   void setupActions();
   void setupToolBar();
+  void setupStatusBar();
   void setupWatchDogConnections();
   void setupConnections();
-
 
   void setupAlbumActions();
   void setupPlaylistActions();
   void setupFileActions();
-
-
-
-  ToolbarView _currentView;
 
   MtpWatchDog* _watchDog;
   DeviceChooser* _deviceChooser;
   QMtpDevice* _currentDevice;
   DeviceExplorer* _deviceExplorer;
 
-    QToolBar* _navBar;
+  QToolBar* _navBar;
+  QStatusBar* _statusBar;
+  QProgressBar* _progressBar;
 
   //View Actions
   QAction* _albumlistAction;
