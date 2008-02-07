@@ -48,6 +48,7 @@ public:
 
   void SetParent(Folder*);
   Folder* Parent() const;
+  LIBMTP_file_t* const RawFile() const;
 private:
   LIBMTP_file_t* _rawFile;
   LIBMTP_filesampledata_t _sampleData;

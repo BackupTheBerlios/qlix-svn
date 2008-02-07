@@ -165,6 +165,14 @@ char const * const File::Name() const
   return _rawFile->filename;
 }
 
+/** Returns the raw file that this object wraps around
+ * @return the raw file;
+ */
+LIBMTP_file_t* const File::RawFile() const
+{
+  return _rawFile;
+}
+
 /** Creates a new Folder object
  * @param in_folder A pointer to the LIBMTP_folder_t wrap over
  * @param in_parent A pointer to this folder's parent

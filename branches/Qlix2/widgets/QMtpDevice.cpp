@@ -1,6 +1,7 @@
 #include "widgets/QMtpDevice.h"
-//TODO 64 bit files
 //TODO retrieving files with NULL filenames
+//TODO memory leaks
+//TODO update model correctly
 
 QMtpDevice::QMtpDevice(MtpDevice* in_device, MtpWatchDog* in_watchDog, 
                        QObject* parent):
@@ -58,7 +59,14 @@ void QMtpDevice::run()
 
         TagLib::FileRef tagFile(fullpath.toUtf8().data(), true,
                           TagLib::AudioProperties::Accurate);
-
+        if (tagFile.isNull())
+        {
+          emit NotATrack(sendCmd);
+          break;
+        }
+        syncTrack(tagFile, sendCmd->ParentID);
+/*
+ * TODO / FIXME this is funky logic, what is isValid()? 
         bool isTrack = (tagFile.file()->isValid());
         if (isTrack)
         {
@@ -66,9 +74,10 @@ void QMtpDevice::run()
         }
         else
         {
-
+          //transfer as file?
 
         }
+*/
         if (!ret)
         {
           delete sendCmd;
@@ -343,6 +352,13 @@ void QMtpDevice::FreeSpace(uint64_t* total , uint64_t* free)
   _device->FreeSpace(total, free);
 }
 
+/**
+ * This function will sync a track to the device by looking up the track's
+ * metadata and calling the TransferTrack function on the device.
+ * @param in_path the path to the track on the host computer's filesystem
+ * @param parent the parent id of this track, this should be the id of a
+ *               folder where this track will reside in
+ */
 bool QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
 {
 //  _albumModel->rowsAboutToBeInserted(); //call this before insertion
@@ -359,9 +375,10 @@ bool QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
   MTP::File* newFile;
   newTrack = _device->SetupTrackTransfer(tagFile, filename, size,
                                          parent, type);
+  //we are doing this only to maintain a sane object mapping 
   newFile  = _device->SetupFileTransfer(filename, size, parent, type); 
 
-  _device->TransferTrack(filePath.toUtf8().data(), parent, newTrack);
+  _device->TransferTrack(filePath.toUtf8().data(), newTrack);
                          
 
   MTP::Album* trackAlbum = NULL;
@@ -376,10 +393,42 @@ bool QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
     }
   }
   bool ret;
+  /*
+   * uncomment this when we are ready to update the models
   if (!trackAlbum)
     ret = _device->CreateNewAlbum(newTrack, &trackAlbum);
-  else //FIXME this should return bool on success
+  else //this should all ways succeed..
+  {
     trackAlbum->AddChildTrack(newTrack, true);
+    return true;
+  }
+  */
+//FIXME this is a memory leak until we get these files into the object tree 
+//and map but we must update the model first
 
 return true;
+}
+
+/**
+ * This function will sync a file to the device
+ * @param in_path the path to the file on the host computer's filesystem
+ * @param parent the parent id of this file, this should be the id of a
+ *               folder
+ */
+bool QMtpDevice::syncFile(const QString& in_path, uint32_t parent)
+{
+//  _albumModel->rowsAboutToBeInserted(); //call this before insertion
+//  _fileModel->rowsAboutToBeInserted();
+  QFileInfo file(in_path);
+  QString suffixStr = file.suffix().toUpper();
+
+  char* suffix = suffixStr.toUtf8().data();
+  char* filename = file.completeBaseName().toLocal8Bit().data();
+  uint64_t size = (uint64_t) file.size();
+  LIBMTP_filetype_t type = MTP::StringToType(suffix);
+
+  MTP::File* newFile = _device->SetupFileTransfer(filename, size, parent,
+                                                  type); 
+  return _device->TransferFile((const char*) in_path.toUtf8().data(), 
+                                newFile);
 }

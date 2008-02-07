@@ -24,6 +24,7 @@
 #include "mtp/BmpStructs.h"
 #include <tag.h>
 #include <fileref.h>
+#include <tfile.h>
 using namespace MTPCMD;
 
 class MtpWatchDog;
@@ -53,6 +54,7 @@ public:
 signals:
   void Initialized(QMtpDevice*);
   void TrackTransferComplete(bool success, GenericCommand*);
+  void NotATrack(SendFileCmd*);
   void UpdateProgress(QString, count_t);
 
 protected:
@@ -63,6 +65,7 @@ private:
   void findAndRetrieveDeviceIcon();
   void initializeDeviceStructures();
   bool syncTrack(TagLib::FileRef, uint32_t parent); 
+  bool syncFile(const QString& path, uint32_t parent);
   bool syncFile();
 
   void lockusb();

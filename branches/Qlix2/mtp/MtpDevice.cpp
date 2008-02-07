@@ -664,12 +664,26 @@ void MtpDevice::createPlaylistStructure()
   }
 }
 
-bool MtpDevice::TransferTrack(const char* in_path, uint32_t parent_id,  
-                              MTP::Track* track)
+bool MtpDevice::TransferTrack(const char* in_path,MTP::Track* track)
 {
   int ret = LIBMTP_Send_Track_From_File(_device, in_path, track->RawTrack(),
                                         _progressFunc, _progressData, 
-                                        parent_id);
+                                        track->RawTrack()->parent_id);
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+  UpdateSpaceInformation();
+  return true;
+}
+
+
+bool MtpDevice::TransferFile(const char* in_path, MTP::File* file)
+{
+  int ret = LIBMTP_Send_File_From_File(_device, in_path, file->RawFile(),
+                                        _progressFunc, _progressData, 
+                                        file->RawFile()->parent_id);
   if (ret != 0)
   {
     processErrorStack();

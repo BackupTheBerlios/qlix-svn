@@ -535,6 +535,7 @@ void DeviceExplorer::TransferTrackToDevice()
     while(!idxList.empty())
     {
       QString fpath = _fsModel->filePath(idxList.front());
+      qDebug() << "Fpath is: " << fpath;
       fileList.push_back(fpath);
       idxList.pop_front();
     }

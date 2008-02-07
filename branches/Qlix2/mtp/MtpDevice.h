@@ -33,7 +33,8 @@ public:
 
   void SetProgressFunction(LIBMTP_progressfunc_t, const void* const );
   bool Fetch(uint32_t, char const * const );
-  bool TransferTrack(const char*, uint32_t, MTP::Track*);
+  bool TransferTrack(const char*, MTP::Track*);
+  bool TransferFile(const char*, MTP::File*);
   MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile,
                                  const char*,
                                  uint64_t,

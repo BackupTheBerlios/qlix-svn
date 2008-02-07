@@ -46,4 +46,6 @@ unix {
   DEFINES += QLIX_DEBUG
   LIBS += -lmtp -ltag
   INCLUDEPATH +=/usr/include/
+  INCLUDEPATH +=/usr/local/include/taglib/
+  DEPENDPATH +=/usr/local/lib/
 }
