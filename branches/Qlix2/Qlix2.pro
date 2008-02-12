@@ -52,6 +52,7 @@ unix {
   LIBS += "-lmtp"
 
   INCLUDEPATH +="/usr/include/"
+  INCLUDEPATH +="/usr/local/include/"
   DEPENDPATH += "/usr/local/lib/"
   QMAKE_CXXFLAGS += $$TAGLIB_INC
 }
