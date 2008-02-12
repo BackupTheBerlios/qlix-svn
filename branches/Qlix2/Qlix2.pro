@@ -49,6 +49,5 @@ unix {
   TAGLIB = $$system(taglib-config --cflags --libs)
   INCLUDEPATH +=/usr/include/ 
   INCLUDEPATH +=$$IDLIB
-  INCLUDEPATH +=/usr/local/include/taglib/
   DEPENDPATH +=/usr/local/lib/
 }
