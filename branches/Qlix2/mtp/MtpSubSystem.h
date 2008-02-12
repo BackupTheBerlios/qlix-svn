@@ -22,7 +22,7 @@ public:
 
   count_t DeviceCount() const;
 
-  count_t MtpSubSystem::RawDeviceCount (MtpDeviceVector* connected, 
+  count_t RawDeviceCount (MtpDeviceVector* connected, 
                                       MtpDeviceVector* disconnected,
                                       MtpDeviceVector* newDevice);
   MtpDevice* Device(count_t);
