@@ -41,7 +41,7 @@ QModelIndex PlaylistModel::parent(const QModelIndex& idx) const
   if(obj->Type() == MtpTrack)
   {
     MTP::Playlist* parent = ((MTP::Track*)obj)->ParentPlaylist();
-    QModelIndex ret = index((int)parent->rowid-1, 0, QModelIndex()); 
+    QModelIndex ret = index((int)parent->GetRowIndex() - 1, 0, QModelIndex()); 
 
     return ret;
   }

@@ -24,7 +24,10 @@ public:
   int rowCount(const QModelIndex& parent= QModelIndex() ) const ;
   int columnCount(const QModelIndex& parent= QModelIndex() ) const;
   QVariant data(const QModelIndex& , int role = Qt::DisplayRole ) const;
+  void AddTrack(const QString&, MTP::Track*);
+
 private:
+  void addAlbum(MTP::Album*);
   MtpDevice* _device;
 };
 #endif

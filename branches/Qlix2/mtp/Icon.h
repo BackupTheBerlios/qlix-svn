@@ -27,7 +27,7 @@ public:
         _header = NULL;
         GetHeader();
         PopulateImages();
-        ReadImages(); //debug
+        //ReadImages(); //debug
         FindBestImage();
         LowLevelExtract();
     }
@@ -66,7 +66,7 @@ public:
         for (count_t i = 0; i < _iconList.size(); i++)
         {
             IconDirEntry* temp = _iconList[i]; 
-    //        cout <<"Icon: " << i << endl; cout <<"Dimensions: "<< (int)temp->Width << " x " << (int)temp->Height << endl; cout <<"Depth: " << (int)temp->ColorCount << endl; cout <<"Reserved: " << (int)temp->Reserved << endl; cout <<"Bit count: " << (int)temp->BitCount<< endl; cout <<"Byte count: " << (int)temp->DataSize<< endl; cout <<"Offset: " << (int) temp->DataOffset << endl; cout << endl;
+            cout <<"Icon: " << i << endl; cout <<"Dimensions: "<< (int)temp->Width << " x " << (int)temp->Height << endl; cout <<"Depth: " << (int)temp->ColorCount << endl; cout <<"Reserved: " << (int)temp->Reserved << endl; cout <<"Bit count: " << (int)temp->BitCount<< endl; cout <<"Byte count: " << (int)temp->DataSize<< endl; cout <<"Offset: " << (int) temp->DataOffset << endl; cout << endl;
         }
     }
     void Extract(void* temp)

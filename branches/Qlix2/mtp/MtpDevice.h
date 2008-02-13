@@ -35,13 +35,6 @@ public:
   bool Fetch(uint32_t, char const * const );
   bool TransferTrack(const char*, MTP::Track*);
   bool TransferFile(const char*, MTP::File*);
-  MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile,
-                                 const char*,
-                                 uint64_t,
-                                 uint32_t, 
-                                 LIBMTP_filetype_t);
-  MTP::File* SetupFileTransfer(const char*,  uint64_t,  count_t, 
-                               LIBMTP_filetype_t);
   bool UpdateSpaceInformation();
 
   void ClearObjectMappings();
@@ -61,7 +54,7 @@ public:
 
   bool CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album);
   void ReleaseDevice();
-  bool FreeSpace(uint64_t*, uint64_t*);
+  void FreeSpace(uint64_t*, uint64_t*);
   LIBMTP_mtpdevice_t* RawDevice() const;
 private:
   LIBMTP_mtpdevice_t* _device;

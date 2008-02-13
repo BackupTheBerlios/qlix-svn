@@ -26,7 +26,8 @@ class GenericObject
 public:
   GenericObject(MtpObjectType, uint32_t);
   virtual ~GenericObject();
-  count_t ID();
+  count_t ID() const;
+  void SetID(count_t);
   MtpObjectType Type();
   virtual const char * const Name() const;
 private:
@@ -73,12 +74,16 @@ public:
   LIBMTP_folder_t* RawFolder() const;
   void AddChildFolder(Folder*);
   void AddChildFile(File*);
-  count_t rowid;
+
+  count_t GetRowIndex() const;
+  void SetRowIndex(count_t);
+
 private:
   LIBMTP_folder_t* _rawFolder;
   Folder* _parent;
   std::vector<Folder*> _childFolders;
   std::vector<File*> _childFiles;
+  count_t _rowIndex;
 };
 
 /** 
@@ -101,13 +106,16 @@ public:
   //Not such a hot idea..
   LIBMTP_track_t* const RawTrack() const;
 
+  count_t GetRowIndex() const;
+  void SetRowIndex(count_t);
+
   //to be deprecated
-  count_t rowid;
 private:
   LIBMTP_track_t* _rawTrack;
   LIBMTP_filesampledata_t _sampleData;
   Album* _parentAlbum;
   Playlist* _parentPlaylist;
+  count_t _rowIndex;
 };
 
 /** 
@@ -123,17 +131,21 @@ public:
   void SetInitialized();
   Track* ChildTrack(count_t ) const;
   void AddChildTrack(Track*, bool updateMetadata= false);
-  void NewAlbumTrack(MTP::Track*);
+  void RemoveChildTrack(count_t in_index, bool updateInternalStruct);
+//  void NewAlbumTrack(MTP::Track*);
 
   virtual const char* const Name() const;
   const char* const ArtistName() const;
-  //to be deprecated
-  count_t rowid;
+
+  count_t GetRowIndex() const;
+  void SetRowIndex(count_t);
+
 private:
   bool _initialized;
   LIBMTP_album_t* _rawAlbum;
   LIBMTP_filesampledata_t _sample;
   std::vector <Track*> _childTracks;
+  count_t _rowIndex;
 };
 
 /**
@@ -150,10 +162,14 @@ public:
   Track* ChildTrack(count_t idx) const; 
   uint32_t ChildTrackID(count_t idx) const;
   void SetInitialized();
+
+  count_t GetRowIndex() const;
+  void SetRowIndex(count_t);
+
   //tobe deprecated
-  count_t rowid;
 private:
   count_t _trackCount;
+  count_t _rowIndex;
   bool _initialized;
   LIBMTP_playlist_t* _rawPlaylist;
   std::vector <Track*> _childTracks;

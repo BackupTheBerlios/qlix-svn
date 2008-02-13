@@ -17,9 +17,19 @@ GenericObject::GenericObject(MtpObjectType in_type, uint32_t id) :
 GenericObject::~GenericObject() {} 
 
 /** 
- * Returns the ID of this object
+ * @return the ID of this object
  */
-count_t GenericObject::ID() { return _id; }
+count_t GenericObject::ID() const { return _id; }
+
+/** 
+ * Sets the ID of this object
+ */
+void GenericObject::SetID( count_t in_id) { _id = in_id; }
+
+
+/** 
+ * @return the name of this object
+ */
 const char* const  GenericObject::Name() const { return ""; }
 
 /** Simple function to get the type of the current MTP object
@@ -42,6 +52,17 @@ Track::Track(LIBMTP_track_t* in_track) :
   _rawTrack = in_track;
 }
 
+/** 
+ * @return the visual row index for this track 
+ * */
+count_t Track::GetRowIndex() const { return _rowIndex; }
+
+/**
+ * Sets the visual row index for this track 
+ * */
+void Track::SetRowIndex(count_t in_row) { _rowIndex = in_row; }
+
+
 /** Retreives the name of the wrapped Track
  * @return the tracks's UTF8 name 
  */
@@ -57,6 +78,7 @@ char const * const Track::AlbumName() const
 {
   return _rawTrack->album;
 }
+
 /** Returns the raw track that this object wraps around
  * @return the raw track;
  */
@@ -64,7 +86,6 @@ LIBMTP_track_t* const Track::RawTrack() const
 {
   return _rawTrack;
 }
-
 
 /** Retreives the file name of the wrapped Track
  * @return the tracks's UTF8 name 
@@ -90,7 +111,6 @@ char const * const Track::Genre() const
   return _rawTrack->genre;
 }
 
-
 /** Returns the parent id of this track
  * @return the parent id of this track
  */
@@ -107,9 +127,6 @@ void Track::SetParentAlbum(Album* in_album) {_parentAlbum = in_album; }
  * @param in_pl the parent playlist of this track
  */
 void Track::SetParentPlaylist(Playlist* in_pl) {_parentPlaylist = in_pl; }
-
-
-
 
 /** Returns the parent Album of this track
  * @return the parent Album of this track
@@ -133,7 +150,6 @@ File::File(LIBMTP_file_t* in_file) :
   _rawFile = in_file;
   _parent = NULL;
 }
-
 
 /**
  * Retreives the file's parent ID
@@ -162,6 +178,7 @@ void File::SetParent(Folder* in_parent)
 char const * const File::Name() const
 {
   //TODO error checking here?
+  //     no, this should be the caller's duty
   return _rawFile->filename;
 }
 
@@ -272,6 +289,17 @@ void Folder::AddChildFile(File* in_file)
   _childFiles.push_back(in_file);
 }
 
+/** 
+ * @return the visual row index for this folder
+ * */
+count_t Folder::GetRowIndex() const { return _rowIndex; }
+
+/**
+ * Sets the visual row index for this folder 
+ * @param in_row the new row of this folder
+ * */
+void Folder::SetRowIndex(count_t in_row) { _rowIndex = in_row; }
+
 /** Creates a new Album object
  * @param in_album A pointer to the LIBMTP_album_t wrap over
  * @return a new Album object
@@ -297,16 +325,16 @@ const LIBMTP_filesampledata_t& Album::SampleData() const
 }
 
 /** Adds the passed track as s subtrack to this album
+ *  The caller must ensure that the album is then updated on the device
  * @param in_track the track to add as a subtrack to this folder
+ * @param updateInternalStruct condition whether or not to update the
+ *        structure on the device
  */
-//FIXME updateInternalStruct should not have a default value
-//TODO find out if updating the internal strucutre actuallly deletes the 
-//     OBJECT ID array
 void Album::AddChildTrack(Track* in_track, bool updateInternalStruct) 
 {
   _childTracks.push_back(in_track);
   in_track->SetParentAlbum(this);
-  in_track->rowid = _childTracks.size();
+  in_track->SetRowIndex( _childTracks.size());
   if (updateInternalStruct)
   {
     count_t trackCount = _rawAlbum->no_tracks;
@@ -316,8 +344,53 @@ void Album::AddChildTrack(Track* in_track, bool updateInternalStruct)
 
     tracks[trackCount+1] = in_track->ID();
     _rawAlbum->no_tracks = trackCount +1;
-//    LIBMTP_Update_Album(_device, _rawAlbum);
+    delete [] _rawAlbum->tracks;
+    _rawAlbum->tracks = tracks;
   }
+}
+
+
+/** Removes the track at the given index of the album.
+ *  The caller must ensure that the album is then updated on the device
+ * @param in_index the track to remove
+ * @param updateInternalStruct condition whether or not to update the
+ *        structure on the device
+ */
+void Album::RemoveChildTrack(count_t in_index, bool updateInternalStruct) 
+{
+  if (in_index > _childTracks.size())
+    return;
+  Track* deletedTrack = _childTracks[in_index];
+  vector<Track*>::iterator iter = _childTracks.begin();
+  vector<Track*>::iterator backup_iter;
+  while (*iter !=  deletedTrack) 
+  { 
+    iter++; 
+    assert(iter != _childTracks.end());
+  }
+
+  backup_iter = iter;
+  //Ensure that objects below this object have the correct index
+  while (backup_iter != _childTracks.end())
+  {
+    (*iter)->SetRowIndex( (*iter)->GetRowIndex() -1);
+  }
+  _childTracks.erase(iter);
+
+  if (updateInternalStruct)
+  {
+    count_t trackCount = _rawAlbum->no_tracks;
+    count_t* tracks = new count_t[trackCount-1];
+    for (count_t i =0; i < trackCount; i++)
+      tracks[i] = _rawAlbum->tracks[i];
+
+    _rawAlbum->no_tracks = trackCount -1;
+    delete [] _rawAlbum->tracks;
+    _rawAlbum->tracks = tracks;
+  }
+  iter = _childTracks.end();
+  iter--;
+  assert( (*iter)->GetRowIndex() == _childTracks.size());
 }
 
 /** Retreives the name of the wrapped Album
@@ -379,6 +452,20 @@ Track* Album::ChildTrack(count_t idx) const
  * LIBMTP data structure as it might become stale.
  */
 void Album::SetInitialized() { _initialized = true; }
+
+/** 
+ * @return the visual row index for this album
+ * */
+count_t Album::GetRowIndex() const { return _rowIndex; }
+
+/**
+ * Sets the visual row index for this album 
+ * @param in_row the new row of this album
+ * */
+void Album::SetRowIndex(count_t in_row) { _rowIndex = in_row; }
+
+
+
 
 /** Creates a new Playlist object
  * @param in_pl t pointer to the LIBMTP_playlist_t wrap over
@@ -450,5 +537,16 @@ uint32_t Playlist::ChildTrackID(count_t idx) const
  */
 void Playlist::SetInitialized() { _initialized = true; }
 }
+
+/** 
+ * @return the visual row index for this playlist
+ * */
+count_t Playlist::GetRowIndex() const { return _rowIndex; }
+
+/**
+ * Sets the visual row index for this playlist 
+ * @param in_row the new row of this playlist
+ * */
+void Playlist::SetRowIndex(count_t in_row) { _rowIndex = in_row; }
 
 

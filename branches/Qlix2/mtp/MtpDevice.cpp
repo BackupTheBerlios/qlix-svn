@@ -1,9 +1,7 @@
-//TODO Add callback feature
-//TODO Add/Test sample data feature
-//TODO Add playlist feature
-//TODO Improve error handling
-//TODO  Should object references returns be of const types?
-//TODO 64 bit intergers should be used for settings up filesizes
+//TODO Improve error handling / Reporting (once theres an error console)
+//TODO Should raw object references returns be of const types? 
+//     No this is a bad idea as sending files updates the file id we discover
+
 #include "MtpDevice.h"
 /**
  * Creates a MtpDevice
@@ -121,12 +119,11 @@ void MtpDevice::Initialize()
 count_t MtpDevice::FileCount() const
 { return _files.size(); }
 
-bool MtpDevice::FreeSpace(uint64_t* total, uint64_t* free)
+void MtpDevice::FreeSpace(uint64_t* total, uint64_t* free)
 {
   *total = _totalSpace;
   *free = _freeSpace;
 }
-
 
 /**
  * Returns the number of folders found at the root level of the device
@@ -382,7 +379,7 @@ void MtpDevice::createObjectStructure()
 
     MTP::Album* currentAlbum = new MTP::Album(albumRoot, temp);
     _albums.push_back(currentAlbum);
-    currentAlbum->rowid = _albums.size();
+    currentAlbum->SetRowIndex( _albums.size());
 
     MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
     _objectMap[currentAlbum->ID()] = currentAlbum; 
@@ -411,7 +408,7 @@ void MtpDevice::createObjectStructure()
 
     MTP::Playlist* currentPlaylist = new MTP::Playlist(playlistRoot);
     _playlists.push_back(currentPlaylist);
-    currentPlaylist->rowid = _playlists.size();
+    currentPlaylist->SetRowIndex(_playlists.size());
 
     MTP::GenericObject* previous = _objectMap[currentPlaylist->ID()];
     _objectMap[currentPlaylist->ID()] = currentPlaylist; 
@@ -469,14 +466,14 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root)
     {
       temp =  new MTP::Folder(folderRoot, in_root);
       in_root->AddChildFolder(temp);
-      temp->rowid = in_root->FolderCount();
+      temp->SetRowIndex(in_root->FolderCount());
     }
     else //else set the child's parent to NULL indicating its at the root
     {
       temp =  new MTP::Folder(folderRoot, NULL);
       //add to the root level folder
       _rootFolders.push_back(temp);
-      temp->rowid = _rootFolders.size();
+      temp->SetRowIndex(_rootFolders.size());
     }
 
     //add this folder to the list of folders at this level
@@ -664,7 +661,7 @@ void MtpDevice::createPlaylistStructure()
   }
 }
 
-bool MtpDevice::TransferTrack(const char* in_path,MTP::Track* track)
+bool MtpDevice::TransferTrack(const char* in_path, MTP::Track* track)
 {
   int ret = LIBMTP_Send_Track_From_File(_device, in_path, track->RawTrack(),
                                         _progressFunc, _progressData, 
@@ -674,6 +671,11 @@ bool MtpDevice::TransferTrack(const char* in_path,MTP::Track* track)
     processErrorStack();
     return false;
   }
+
+  //necessary due to stupid inheritence
+  //TODO fix this?
+  track->SetID(track->RawTrack()->item_id);
+  cout << "Transfer succesfull, new id: " << track->ID() << endl;
   UpdateSpaceInformation();
   return true;
 }
@@ -691,91 +693,6 @@ bool MtpDevice::TransferFile(const char* in_path, MTP::File* file)
   }
   UpdateSpaceInformation();
   return true;
-}
-
-MTP::Track* MtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
-                                          const char* in_filename,
-                                          uint64_t in_size,
-                                          uint32_t in_parentID, 
-                                          LIBMTP_filetype_t in_type)
-{
-    TagLib::String unknownString = "Unknown";
-    //Copy the album
-    TagLib::String albumTag = tagFile.tag()->album();
-    char* album;
-    if (albumTag.isEmpty() || albumTag.upper() == TagLib::String("UNKNOWN"))
-        album = strdup(unknownString.toCString(true));
-    else
-        album = strdup(albumTag.toCString(true));
-    cout << "Album sanity check: " << album << endl;
-
-    //Copy the title
-    char* title;
-    TagLib::String titleTag = tagFile.tag()->title();
-    if (titleTag.isEmpty() || titleTag.upper() == TagLib::String("UNKNOWN"))
-        title = strdup(unknownString.toCString(true));
-    else
-        title = strdup(titleTag.toCString(true));
-    cout << "Title sanity check: " << titleTag << endl;
-
-    //Copy the artist
-    char* artist;
-    TagLib::String artistTag = tagFile.tag()->artist();
-    if (artistTag.isEmpty() || artistTag.upper() == TagLib::String("UNKNOWN"))
-        artist = strdup(unknownString.toCString(true));
-    else
-        artist = strdup(artistTag.toCString(true));
-    cout << "Artist sanity check: " <<  artist << endl;
-
-    //Copy the genre
-    TagLib::String genreTag = tagFile.tag()->genre();
-    char* genre;
-    if (genreTag.isEmpty() || genreTag.upper() == TagLib::String("UNKNOWN"))
-        genre =  strdup(unknownString.toCString(true));
-    else
-        genre = strdup(genreTag.toCString(true));
-    cout<< "Genre sanity check: " << genre << endl;
-
-    //Copy the filename
-    //TODO why doesn't this work?
-    char* filename = strdup(in_filename);
-    cout << "Filename sanity check: " << filename << endl;
-    LIBMTP_track_t* newtrack = LIBMTP_new_track_t();
-
-    newtrack->parent_id = in_parentID;
-    newtrack->title = title;
-    newtrack->artist = artist;
-    newtrack->genre = genre;
-    newtrack->album = album;
-    newtrack->filename= filename;
-    newtrack->tracknumber = tagFile.tag()->track();
-    newtrack->duration  = tagFile.audioProperties()->length()*1000;
-    newtrack->bitrate   = tagFile.audioProperties()->bitrate();
-    newtrack->filesize  = in_size;
-    newtrack->filetype = in_type;
-    newtrack->next = NULL;
-    return new MTP::Track(newtrack);
-}
-
-/**
- * This function creates a MTP::File object filled with sane values
- * @param in_filename the name of the file
- * @param in_si the size of the file
- * @param in_parentid the parent folder of this object, if its 0, its on the
- *        root level
- * @param in_type the LIBMTP_filetype_t of file
- */
-MTP::File* MtpDevice::SetupFileTransfer(const char* in_filename, 
-                                         uint64_t in_sz, 
-                                         count_t in_parentid, 
-                                         LIBMTP_filetype_t in_type)
-{
-  LIBMTP_file_t* file = LIBMTP_new_file_t();
-  file->filename = strdup(in_filename);
-  file->filesize = in_sz;
-  file->parent_id = in_parentid;
-  file->filetype = in_type;
-  return new MTP::File(file);
 }
 
 /**
@@ -803,6 +720,9 @@ bool MtpDevice::UpdateSpaceInformation()
  * This function creates a new album on the device, using the information from
  * the track that is passed as a param. This function assumes that this 
  * album's name is unique on the device. 
+ * The new album will be added to the album's list, be sure to notify any
+ * models before hand
+ *
  * @param in_track the track that is used as a template for the album's name,
  *        artist, and genre fields.
  * @param out_album the newly allocated MTP::Album, if the operation fails
@@ -812,11 +732,12 @@ bool MtpDevice::UpdateSpaceInformation()
 bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
 {
   LIBMTP_album_t* newAlbum = LIBMTP_new_album_t();
-  newAlbum->name = strdup(in_track->Name());
+  newAlbum->name = strdup(in_track->AlbumName());
   newAlbum->artist = strdup(in_track->ArtistName());
   newAlbum->genre = strdup(in_track->Genre());
   newAlbum->tracks  = new uint32_t;
   *(newAlbum->tracks) = in_track->ID();
+  cout << "Set the album's first track to: " << *(newAlbum->tracks) << endl;
   newAlbum->no_tracks = 1;
   newAlbum->next = NULL;
   int ret =  LIBMTP_Create_New_Album(_device, newAlbum, 0);
@@ -828,7 +749,10 @@ bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
   }
   UpdateSpaceInformation();
   LIBMTP_filesampledata_t sample;
+  sample.size = 0;
+  sample.data = NULL;
   (*out_album) = new MTP::Album(newAlbum, sample);
+  (*out_album)->AddChildTrack(in_track, false);
+  _albums.push_back(*out_album);
   return true;
 }
-

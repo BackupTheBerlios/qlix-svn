@@ -64,6 +64,13 @@ private:
 
   void findAndRetrieveDeviceIcon();
   void initializeDeviceStructures();
+
+  MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile, const char*, 
+                                 uint64_t, uint32_t,  LIBMTP_filetype_t);
+
+  MTP::File* SetupFileTransfer(const char*,  uint64_t,  count_t, 
+                               LIBMTP_filetype_t);
+
   bool syncTrack(TagLib::FileRef, uint32_t parent); 
   bool syncFile(const QString& path, uint32_t parent);
   bool syncFile();

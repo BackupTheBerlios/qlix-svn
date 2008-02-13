@@ -156,6 +156,9 @@ void QMtpDevice::initializeDeviceStructures()
   _sortedAlbums = new QSortFilterProxyModel();
   _sortedPlaylists = new QSortFilterProxyModel();
   _sortedFiles = new MtpDirSorter();
+  _sortedAlbums->setDynamicSortFilter(true);
+  _sortedFiles->setDynamicSortFilter(true);
+  _sortedPlaylists->setDynamicSortFilter(true);
 
   _sortedAlbums->setSourceModel(_albumModel);
   _sortedPlaylists->setSourceModel(_plModel);
@@ -373,36 +376,15 @@ bool QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
 
   MTP::Track* newTrack;
   MTP::File* newFile;
-  newTrack = _device->SetupTrackTransfer(tagFile, filename, size,
+  newTrack = SetupTrackTransfer(tagFile, filename, size,
                                          parent, type);
+  _albumModel->AddTrack(filePath, newTrack);
+
+  //it is unclear how to handle this.. need more info
   //we are doing this only to maintain a sane object mapping 
-  newFile  = _device->SetupFileTransfer(filename, size, parent, type); 
+  //newFile  = SetupFileTransfer(filename, size, parent, type); 
 
-  _device->TransferTrack(filePath.toUtf8().data(), newTrack);
-                         
 
-  MTP::Album* trackAlbum = NULL;
-  QString findThisAlbum = QString::fromUtf8(newTrack->AlbumName());
-  for (count_t i = 0; i < _device->AlbumCount(); i++)
-  {
-    MTP::Album* album = _device->Album(i);
-    if (QString::fromUtf8(album->Name()) == findThisAlbum)
-    {
-      trackAlbum = album;
-      break;
-    }
-  }
-  bool ret;
-  /*
-   * uncomment this when we are ready to update the models
-  if (!trackAlbum)
-    ret = _device->CreateNewAlbum(newTrack, &trackAlbum);
-  else //this should all ways succeed..
-  {
-    trackAlbum->AddChildTrack(newTrack, true);
-    return true;
-  }
-  */
 //FIXME this is a memory leak until we get these files into the object tree 
 //and map but we must update the model first
 
@@ -427,8 +409,94 @@ bool QMtpDevice::syncFile(const QString& in_path, uint32_t parent)
   uint64_t size = (uint64_t) file.size();
   LIBMTP_filetype_t type = MTP::StringToType(suffix);
 
-  MTP::File* newFile = _device->SetupFileTransfer(filename, size, parent,
+  MTP::File* newFile = SetupFileTransfer(filename, size, parent,
                                                   type); 
   return _device->TransferFile((const char*) in_path.toUtf8().data(), 
                                 newFile);
+}
+
+/**
+ * This function creates a MTP::File object filled with sane values
+ * @param in_filename the name of the file
+ * @param in_si the size of the file
+ * @param in_parentid the parent folder of this object, if its 0, its on the
+ *        root level
+ * @param in_type the LIBMTP_filetype_t of file
+ */
+MTP::File* QMtpDevice::SetupFileTransfer(const char* in_filename, 
+                                         uint64_t in_sz, 
+                                         count_t in_parentid, 
+                                         LIBMTP_filetype_t in_type)
+{
+  LIBMTP_file_t* file = LIBMTP_new_file_t();
+  file->filename = strdup(in_filename);
+  file->filesize = in_sz;
+  file->parent_id = in_parentid;
+  file->filetype = in_type;
+  return new MTP::File(file);
+}
+
+
+MTP::Track* QMtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
+                                          const char* in_filename,
+                                          uint64_t in_size,
+                                          uint32_t in_parentID, 
+                                          LIBMTP_filetype_t in_type)
+{
+    TagLib::String unknownString = "Unknown";
+    //Copy the album
+    TagLib::String albumTag = tagFile.tag()->album();
+    char* album;
+    if (albumTag.isEmpty() || albumTag.upper() == TagLib::String("UNKNOWN"))
+        album = strdup(unknownString.toCString(true));
+    else
+        album = strdup(albumTag.toCString(true));
+    cout << "Album sanity check: " << album << endl;
+
+    //Copy the title
+    char* title;
+    TagLib::String titleTag = tagFile.tag()->title();
+    if (titleTag.isEmpty() || titleTag.upper() == TagLib::String("UNKNOWN"))
+        title = strdup(unknownString.toCString(true));
+    else
+        title = strdup(titleTag.toCString(true));
+    cout << "Title sanity check: " << titleTag << endl;
+
+    //Copy the artist
+    char* artist;
+    TagLib::String artistTag = tagFile.tag()->artist();
+    if (artistTag.isEmpty() || artistTag.upper() == TagLib::String("UNKNOWN"))
+        artist = strdup(unknownString.toCString(true));
+    else
+        artist = strdup(artistTag.toCString(true));
+    cout << "Artist sanity check: " <<  artist << endl;
+
+    //Copy the genre
+    TagLib::String genreTag = tagFile.tag()->genre();
+    char* genre;
+    if (genreTag.isEmpty() || genreTag.upper() == TagLib::String("UNKNOWN"))
+        genre =  strdup(unknownString.toCString(true));
+    else
+        genre = strdup(genreTag.toCString(true));
+    cout<< "Genre sanity check: " << genre << endl;
+
+    //Copy the filename
+    //TODO why doesn't this work?
+    char* filename = strdup(in_filename);
+    cout << "Filename sanity check: " << filename << endl;
+    LIBMTP_track_t* newtrack = LIBMTP_new_track_t();
+
+    newtrack->parent_id = in_parentID;
+    newtrack->title = title;
+    newtrack->artist = artist;
+    newtrack->genre = genre;
+    newtrack->album = album;
+    newtrack->filename= filename;
+    newtrack->tracknumber = tagFile.tag()->track();
+    newtrack->duration  = tagFile.audioProperties()->length()*1000;
+    newtrack->bitrate   = tagFile.audioProperties()->bitrate();
+    newtrack->filesize  = in_size;
+    newtrack->filetype = in_type;
+    newtrack->next = NULL;
+    return new MTP::Track(newtrack);
 }

@@ -81,7 +81,7 @@ QModelIndex DirModel::parent(const QModelIndex& idx) const
       return QModelIndex();
    MTP::Folder* fobj = (MTP::Folder*) obj;
    qDebug() << "folder " << QString::fromUtf8(fobj->Name()) << " 's parent is: " << QString::fromUtf8(parent->Name());
-   return createIndex(parent->rowid-1, 0, parent); 
+   return createIndex(parent->GetRowIndex()-1, 0, parent); 
   }
   else if (obj->Type() == MtpFile)
   {
@@ -90,7 +90,7 @@ QModelIndex DirModel::parent(const QModelIndex& idx) const
       return QModelIndex();
      MTP::File* fobj = (MTP::File*) obj;
     qDebug() << "file" << QString::fromUtf8(fobj->Name()) << " 's parent is: " << QString::fromUtf8(parent->Name());
-    return createIndex(parent->rowid-1, 0, parent);
+    return createIndex(parent->GetRowIndex()-1, 0, parent);
   }
   else
   {

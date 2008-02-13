@@ -60,7 +60,7 @@ QModelIndex AlbumModel::parent(const QModelIndex& idx) const
   if(obj->Type() == MtpTrack)
   {
     MTP::Album* parent = ((MTP::Track*)obj)->ParentAlbum();
-    QModelIndex ret = index((int)parent->rowid-1, 0, QModelIndex()); 
+    QModelIndex ret = index((int)parent->GetRowIndex()-1, 0, QModelIndex()); 
 
     return ret;
   }
@@ -184,3 +184,58 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
   }
   return QVariant();
 }
+/**
+ * Adds a track to this model, it is this functions job to figure out if there
+ * is an applicable Album to add, or to create an album if it doesn't exist
+ * @param in_path the path to the track to add
+ * @param in_track the track to add to this model
+ */
+void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
+{
+  //now we update each model..
+
+  _device->TransferTrack(in_path.toUtf8().data(), in_track);
+                         
+
+  MTP::Album* trackAlbum = NULL;
+  QString findThisAlbum = QString::fromUtf8(in_track->AlbumName());
+  for (count_t i = 0; i < _device->AlbumCount(); i++)
+  {
+    MTP::Album* album = _device->Album(i);
+    if (QString::fromUtf8(album->Name()) == findThisAlbum)
+    {
+      trackAlbum = album;
+      break;
+    }
+  }
+  bool ret;
+  if (!trackAlbum)
+  {
+    QModelIndex temp;
+    emit layoutAboutToBeChanged();
+    emit beginInsertRows(temp, _device->AlbumCount(), 
+                               _device->AlbumCount());
+    ret = _device->CreateNewAlbum(in_track, &trackAlbum);
+    //TODO FIXME aparantly we should do this IMMEDIATLEY AFTERWARDS find out
+    //in #qt what IA means..
+    emit endInsertRows();
+    emit layoutChanged();
+  }
+
+/*
+  else //this should all ways succeed..
+  {
+    trackAlbum->AddChildTrack(newTrack, true);
+    return true;
+  }
+  */
+
+}
+
+/**
+ * Adds and album to this Model
+ */
+void AlbumModel::addAlbum(MTP::Album*)
+{
+}
+
