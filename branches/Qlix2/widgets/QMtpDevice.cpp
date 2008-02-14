@@ -59,11 +59,12 @@ void QMtpDevice::run()
 
         TagLib::FileRef tagFile(fullpath.toUtf8().data(), true,
                           TagLib::AudioProperties::Accurate);
-        if (tagFile.isNull())
+        if (tagFile.isNull()) 
         {
           emit NotATrack(sendCmd);
           break;
         }
+        qDebug() << "Syncing track with path: " << fullpath;
         syncTrack(tagFile, sendCmd->ParentID);
 /*
  * TODO / FIXME this is funky logic, what is isValid()? 
@@ -212,9 +213,9 @@ void QMtpDevice::findAndRetrieveDeviceIcon()
 /*
  * Returns the sorted AlbumModel
  */
-QSortFilterProxyModel* QMtpDevice::GetAlbumModel() const
+QAbstractItemModel* QMtpDevice::GetAlbumModel() const
 {
-  return _sortedAlbums;
+  return _albumModel;
 }
 /*
  * Returns the sorted DirModel 
@@ -341,7 +342,7 @@ void QMtpDevice::TransferFrom(MTP::GenericObject* obj, QString filePath)
 
 int QMtpDevice::progressWrapper(uint64_t const sent, uint64_t const total, const void* const data)
 {
-  cout << "Progress: " << (float)sent/(float)total << endl;
+//  cout << "Progress: " << (float)sent/(float)total << endl;
   if (!data)
     return 1;
   QMtpDevice const * const tempDevice = static_cast<const QMtpDevice* const> (data);
@@ -369,10 +370,11 @@ bool QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
   QString filePath = tagFile.file()->name();
   QFileInfo file(filePath);
   QString suffixStr = file.suffix().toUpper();
-  char* suffix = suffixStr.toUtf8().data();
-  char* filename = file.completeBaseName().toLocal8Bit().data();
+  char* suffix = strdup(suffixStr.toUtf8().data());
+  QString filename = file.fileName();
   uint64_t size = (uint64_t) file.size();
   LIBMTP_filetype_t type = MTP::StringToType(suffix);
+  delete suffix;
 
   MTP::Track* newTrack;
   MTP::File* newFile;
@@ -438,10 +440,10 @@ MTP::File* QMtpDevice::SetupFileTransfer(const char* in_filename,
 
 
 MTP::Track* QMtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
-                                          const char* in_filename,
-                                          uint64_t in_size,
-                                          uint32_t in_parentID, 
-                                          LIBMTP_filetype_t in_type)
+                                           const QString& in_filename,
+                                           uint64_t in_size,
+                                           uint32_t in_parentID, 
+                                           LIBMTP_filetype_t in_type)
 {
     TagLib::String unknownString = "Unknown";
     //Copy the album
@@ -460,7 +462,7 @@ MTP::Track* QMtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
         title = strdup(unknownString.toCString(true));
     else
         title = strdup(titleTag.toCString(true));
-    cout << "Title sanity check: " << titleTag << endl;
+    cout << "Title sanity check: " << title << endl;
 
     //Copy the artist
     char* artist;
@@ -482,9 +484,10 @@ MTP::Track* QMtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
 
     //Copy the filename
     //TODO why doesn't this work?
-    char* filename = strdup(in_filename);
+    char* filename = strdup(in_filename.toLocal8Bit().data());
     cout << "Filename sanity check: " << filename << endl;
     LIBMTP_track_t* newtrack = LIBMTP_new_track_t();
+    cout << "File type sanity check: " << MTP::TypeToString(in_type) << endl;
 
     newtrack->parent_id = in_parentID;
     newtrack->title = title;

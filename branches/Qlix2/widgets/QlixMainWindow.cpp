@@ -46,11 +46,13 @@ void QlixMainWindow::DeviceSelected(QMtpDevice* in_device)
 
 void QlixMainWindow::setupStatusBar()
 {
-  statusBar()->setMaximumHeight(20);
+  statusBar()->setMaximumHeight(24);
+  statusBar()->setContentsMargins(0,-2,0,0);
   _progressBar = new QProgressBar();
   _progressBar->setTextVisible(false);
   _progressBar->setRange(0, 100);
-  _progressBar->setMaximumSize(140, 20);
+  _progressBar->setMaximumSize(240, 20);
+  _progressBar->setMinimumSize(240, 20);
   _progressBar->setAlignment(Qt::AlignRight);
   statusBar()->insertPermanentWidget(0, _progressBar, 0);
   _progressBar->hide();
@@ -99,7 +101,7 @@ void QlixMainWindow::setupActions()
   _navBar->addAction(_manageDeviceAction);
   _navBar->addAction(_preferencesAction);
 
-  _navBar->setIconSize(QSize(40,40));
+  _navBar->setIconSize(QSize(32,32));
 
 //  setupAlbumActions();
 //  setupPlaylistActions();

@@ -60,7 +60,9 @@ QModelIndex AlbumModel::parent(const QModelIndex& idx) const
   if(obj->Type() == MtpTrack)
   {
     MTP::Album* parent = ((MTP::Track*)obj)->ParentAlbum();
-    QModelIndex ret = index((int)parent->GetRowIndex()-1, 0, QModelIndex()); 
+    assert(parent != (MTP::Album*)obj);
+//    QModelIndex ret = index((int)parent->GetRowIndex()-1, 0, QModelIndex()); 
+    QModelIndex ret = createIndex(parent->GetRowIndex(),0, parent);
 
     return ret;
   }
@@ -141,7 +143,7 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
     {
         MTP::Album* tempAlbum = (MTP::Album*)temp;
         LIBMTP_filesampledata_t sample = tempAlbum->SampleData();
-        if (sample.filetype == LIBMTP_FILETYPE_UNKNOWN)
+        if (sample.filetype != LIBMTP_FILETYPE_JPEG)
         {
           QPixmap ret;
           if (sample.size > 0 && sample.data)
@@ -193,10 +195,13 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
 void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
 {
   //now we update each model..
-
-  _device->TransferTrack(in_path.toUtf8().data(), in_track);
+  qDebug() << "AlbumModel Add track called";
+  if (! _device->TransferTrack(in_path.toUtf8().data(), in_track) )
+  {
+    qDebug() << "Transfer track failed.. ";
+    return;
+  }
                          
-
   MTP::Album* trackAlbum = NULL;
   QString findThisAlbum = QString::fromUtf8(in_track->AlbumName());
   for (count_t i = 0; i < _device->AlbumCount(); i++)
@@ -208,28 +213,58 @@ void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
       break;
     }
   }
+
   bool ret;
   if (!trackAlbum)
   {
     QModelIndex temp;
+    //first we try and add a new album to the device
+    if(!_device->CreateNewAlbum(in_track, &trackAlbum))
+    {
+      qDebug() << "Failed to create new album";
+      return;
+    }
+
+    //if thats successful we can update the view..
     emit layoutAboutToBeChanged();
     emit beginInsertRows(temp, _device->AlbumCount(), 
                                _device->AlbumCount());
-    ret = _device->CreateNewAlbum(in_track, &trackAlbum);
-    //TODO FIXME aparantly we should do this IMMEDIATLEY AFTERWARDS find out
-    //in #qt what IA means..
+    _device->AddAlbum(trackAlbum);
     emit endInsertRows();
     emit layoutChanged();
-  }
 
-/*
-  else //this should all ways succeed..
+    //now add the track to the found album and update it on the device
+    if (!_device->AddTrackToAlbum(in_track, trackAlbum))
+    {
+      qDebug() << "Failed to add track to album";
+      return;
+    }
+
+    temp = createIndex(trackAlbum->GetRowIndex(), 0, trackAlbum);
+    emit layoutAboutToBeChanged();
+    emit beginInsertRows(temp, trackAlbum->TrackCount(), 
+                         trackAlbum->TrackCount());
+    trackAlbum->AddChildTrack(in_track, false);
+    emit endInsertRows();
+    emit layoutChanged();
+    return;
+  }
+  assert(trackAlbum);
+
+  //now add the track to the found album and update it on the device
+  if (!_device->AddTrackToAlbum(in_track, trackAlbum))
   {
-    trackAlbum->AddChildTrack(newTrack, true);
-    return true;
+    qDebug() << "Failed to add track to album";
+    return;
   }
-  */
-
+  //if thats successfull we can update the view
+  QModelIndex temp = createIndex(trackAlbum->GetRowIndex(), 0, trackAlbum);
+  emit layoutAboutToBeChanged();
+  emit beginInsertRows(temp, trackAlbum->TrackCount(), 
+                       trackAlbum->TrackCount());
+  trackAlbum->AddChildTrack(in_track, false);
+  emit endInsertRows();
+  emit layoutChanged();
 }
 
 /**

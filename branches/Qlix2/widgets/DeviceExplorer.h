@@ -96,7 +96,7 @@ private:
   QListView* _queueView;
 
   QTreeView* _deviceView;
-  QSortFilterProxyModel* _albumModel;
+  QAbstractItemModel* _albumModel;
   QSortFilterProxyModel* _plModel;
   QSortFilterProxyModel* _dirModel;
 

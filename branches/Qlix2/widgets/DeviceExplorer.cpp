@@ -165,7 +165,6 @@ void DeviceExplorer::ShowFiles()
 void DeviceExplorer::UpdateProgressBar(const QString& label,
                                        count_t percent)
 {
-  qDebug() << "Update Progress Bar called" << endl;
   if (!_progressBar)
     return;
   else if (_progressBar->isHidden())
@@ -174,11 +173,8 @@ void DeviceExplorer::UpdateProgressBar(const QString& label,
   _progressBar->setValue(percent);
   if (percent == 100)
   {
-    qDebug() << "Percent is now 1";
     updateDeviceSpace();
   }
-  else
-    qDebug() << "Percent is now" << percent ;
 }
 
 
@@ -581,6 +577,7 @@ void DeviceExplorer::TransferFromDevice()
     while(!idxList.empty())
     {
       QModelIndex temp = idxList.front();
+      /*
       if (_view == AlbumsView)
         temp = _albumModel->mapToSource(temp);
       else if (_view == PlaylistView)
@@ -589,6 +586,7 @@ void DeviceExplorer::TransferFromDevice()
         temp = _dirModel->mapToSource(temp);
       else
         assert(false);
+        */
 
       obj = (MTP::GenericObject*) temp.internalPointer();
 //      QString name = _albumModel->data(0, 0, idxList.front);

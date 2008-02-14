@@ -53,6 +53,9 @@ public:
   MTP::File* RootFile(count_t idx) const;
 
   bool CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album);
+  void AddAlbum(MTP::Album* in_album);
+  bool AddTrackToAlbum(MTP::Track* in_track, MTP::Album* in_album);
+
   void ReleaseDevice();
   void FreeSpace(uint64_t*, uint64_t*);
   LIBMTP_mtpdevice_t* RawDevice() const;

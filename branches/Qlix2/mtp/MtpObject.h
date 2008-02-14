@@ -127,12 +127,14 @@ public:
   Album(LIBMTP_album_t*, const LIBMTP_filesampledata_t&);
   const LIBMTP_filesampledata_t& SampleData() const;
   count_t TrackCount() const;
+
+  LIBMTP_album_t const* RawAlbum();
   uint32_t ChildTrackID(count_t ) const;
   void SetInitialized();
   Track* ChildTrack(count_t ) const;
-  void AddChildTrack(Track*, bool updateMetadata= false);
+  void AddChildTrack(Track*, bool sanity = false);
+  void AddTrackToRawAlbum(Track* in_track);
   void RemoveChildTrack(count_t in_index, bool updateInternalStruct);
-//  void NewAlbumTrack(MTP::Track*);
 
   virtual const char* const Name() const;
   const char* const ArtistName() const;

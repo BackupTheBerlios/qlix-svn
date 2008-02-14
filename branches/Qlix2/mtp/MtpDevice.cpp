@@ -3,6 +3,7 @@
 //     No this is a bad idea as sending files updates the file id we discover
 
 #include "MtpDevice.h"
+//#define SIMULATE_TRANSFERS
 /**
  * Creates a MtpDevice
  * @param in_device The raw LIBMtp device
@@ -625,7 +626,7 @@ void MtpDevice::createAlbumStructure()
         cerr << "Current track: " << track_id << "is crosslinked" << endl;
         continue;
       }
-      parentAlbum->AddChildTrack((MTP::Track*) obj, false);
+      parentAlbum->AddChildTrack((MTP::Track*) obj);
     }
     parentAlbum->SetInitialized();
   }
@@ -663,6 +664,7 @@ void MtpDevice::createPlaylistStructure()
 
 bool MtpDevice::TransferTrack(const char* in_path, MTP::Track* track)
 {
+#ifndef SIMULATE_TRANSFERS
   int ret = LIBMTP_Send_Track_From_File(_device, in_path, track->RawTrack(),
                                         _progressFunc, _progressData, 
                                         track->RawTrack()->parent_id);
@@ -671,6 +673,7 @@ bool MtpDevice::TransferTrack(const char* in_path, MTP::Track* track)
     processErrorStack();
     return false;
   }
+#endif
 
   //necessary due to stupid inheritence
   //TODO fix this?
@@ -735,11 +738,15 @@ bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
   newAlbum->name = strdup(in_track->AlbumName());
   newAlbum->artist = strdup(in_track->ArtistName());
   newAlbum->genre = strdup(in_track->Genre());
-  newAlbum->tracks  = new uint32_t;
-  *(newAlbum->tracks) = in_track->ID();
-  cout << "Set the album's first track to: " << *(newAlbum->tracks) << endl;
-  newAlbum->no_tracks = 1;
+  newAlbum->tracks  = NULL;
+  cerr << "Created new album with name: " << newAlbum->name << endl;
+  cerr << "Created new album with artist: " << newAlbum->artist << endl;
+  cerr << "Created new album with genre: " << newAlbum->genre << endl;
+//  *(newAlbum->tracks) = in_track->ID();
+//  cout << "Set the album's first track to: " << *(newAlbum->tracks) << endl;
+  newAlbum->no_tracks = 0;
   newAlbum->next = NULL;
+#ifndef SIMULATE_TRANSFERS
   int ret =  LIBMTP_Create_New_Album(_device, newAlbum, 0);
   if (ret != 0)
   {
@@ -747,12 +754,44 @@ bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
     processErrorStack();
     return false;
   }
+#endif
   UpdateSpaceInformation();
   LIBMTP_filesampledata_t sample;
   sample.size = 0;
   sample.data = NULL;
   (*out_album) = new MTP::Album(newAlbum, sample);
-  (*out_album)->AddChildTrack(in_track, false);
-  _albums.push_back(*out_album);
   return true;
 }
+
+/**
+ * This function adds an album to the Album list
+ */
+void MtpDevice::AddAlbum(MTP::Album* in_album)
+{
+  in_album->SetRowIndex(_albums.size());
+  _albums.push_back(in_album);
+}
+
+/**
+ * This function adds the passed track to the album on the device by first
+ * adding it to the raw track, syncing to the device and then adds the track
+ * to the wrapper track. 
+ * @param in_track the track that is to be added to the parent album
+ * @param in_album the parent album for this track 
+ * @return true if successfull false otherwise
+ */
+bool MtpDevice::AddTrackToAlbum(MTP::Track* in_track, MTP::Album* in_album)
+{
+  in_album->SetInitialized();
+  in_album->AddTrackToRawAlbum(in_track);
+#ifndef SIMULATE_TRANSFERS
+  int ret = LIBMTP_Update_Album(_device, in_album->RawAlbum());
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+#endif
+  return true;
+}
+

@@ -45,7 +45,7 @@ public:
   void TransferFrom(MTP::GenericObject*, QString );
 
   void IssueCommand (GenericCommand* in_command);
-  QSortFilterProxyModel* GetAlbumModel() const;
+  QAbstractItemModel* GetAlbumModel() const;
   QSortFilterProxyModel* GetPlaylistModel() const;
   QSortFilterProxyModel* GetDirModel() const;
   void Progress(uint64_t const sent, uint64_t const total);
@@ -65,7 +65,7 @@ private:
   void findAndRetrieveDeviceIcon();
   void initializeDeviceStructures();
 
-  MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile, const char*, 
+  MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile, const QString&, 
                                  uint64_t, uint32_t,  LIBMTP_filetype_t);
 
   MTP::File* SetupFileTransfer(const char*,  uint64_t,  count_t, 

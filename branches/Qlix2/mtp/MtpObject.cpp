@@ -324,29 +324,48 @@ const LIBMTP_filesampledata_t& Album::SampleData() const
   return _sample;
 }
 
-/** Adds the passed track as s subtrack to this album
+/** Adds the passed track as a subtrack to this album
  *  The caller must ensure that the album is then updated on the device
+ *  If the gui is adding a track, you must first add the track to the raw
+ *  folder before adding it to the wrapper
  * @param in_track the track to add as a subtrack to this folder
  * @param updateInternalStruct condition whether or not to update the
  *        structure on the device
  */
-void Album::AddChildTrack(Track* in_track, bool updateInternalStruct) 
+void Album::AddChildTrack(Track* in_track, bool sanity) 
 {
-  _childTracks.push_back(in_track);
   in_track->SetParentAlbum(this);
+  //row index is not _childTracks.size() +1 as it is zero based..
   in_track->SetRowIndex( _childTracks.size());
-  if (updateInternalStruct)
-  {
-    count_t trackCount = _rawAlbum->no_tracks;
-    count_t* tracks = new count_t[trackCount+1];
-    for (count_t i =0; i < trackCount; i++)
-      tracks[i] = _rawAlbum->tracks[i];
+  _childTracks.push_back(in_track);
+  if(sanity)
+    assert(_childTracks.size() == _rawAlbum->no_tracks);
+}
 
-    tracks[trackCount+1] = in_track->ID();
-    _rawAlbum->no_tracks = trackCount +1;
-    delete [] _rawAlbum->tracks;
-    _rawAlbum->tracks = tracks;
-  }
+/** Adds the passed track as a subtrack to the raw album of this object only
+ *  The caller must ensure that the album is then updated on the device
+ *  The reason this is split phase is so that we can update the device before
+ *  we update the view
+ * @param in_track the track to add as a subtrack to this folder
+ */
+void Album::AddTrackToRawAlbum(Track* in_track)
+{
+  count_t trackCount = _rawAlbum->no_tracks;
+  count_t* tracks = new count_t[trackCount+1];
+  for (count_t i =0; i < trackCount; i++)
+    tracks[i] = _rawAlbum->tracks[i];
+
+  tracks[trackCount] = in_track->ID();
+  _rawAlbum->no_tracks = trackCount +1;
+  //LIBMTP does this automatically for us..
+  //delete [] _rawAlbum->tracks;
+  _rawAlbum->tracks = tracks;
+}
+
+/* @return the RawAlbum that this object wraps over*/
+LIBMTP_album_t const* Album::RawAlbum() 
+{
+  return _rawAlbum;
 }
 
 
