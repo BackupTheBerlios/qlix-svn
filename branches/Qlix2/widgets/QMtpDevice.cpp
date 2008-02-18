@@ -215,9 +215,9 @@ void QMtpDevice::findAndRetrieveDeviceIcon()
 /*
  * Returns the sorted AlbumModel
  */
-QAbstractItemModel* QMtpDevice::GetAlbumModel() const
+QSortFilterProxyModel* QMtpDevice::GetAlbumModel() const
 {
-  return _albumModel;
+  return _sortedAlbums;
 }
 /*
  * Returns the sorted DirModel 
@@ -352,9 +352,12 @@ void QMtpDevice::TransferFrom(MTP::GenericObject* obj, QString filePath)
       }
       break;
     }
+
     default:
+    {
       assert(false);
       break;
+    }
   }
 }
 

@@ -35,12 +35,8 @@
         <file>pixmaps/ActionBar/TransferFile.png</file>
         <file>pixmaps/ActionBar/TransferFromDevice.png</file>
         <file>pixmaps/DetectDevices.png</file>
-        <file>pixmaps/TreeView/Vline.png</file>
-        <file>pixmaps/TreeView/BlankVline.png</file>
         <file>pixmaps/TreeView/branch-closed.png</file>
         <file>pixmaps/TreeView/branch-open.png</file>
-        <file>pixmaps/TreeView/branch-more.png</file>
-        <file>pixmaps/TreeView/branch-end.png</file>
     </qresource>
 </RCC>
 

@@ -45,7 +45,7 @@ public:
   void TransferFrom(MTP::GenericObject*, QString );
 
   void IssueCommand (GenericCommand* in_command);
-  QAbstractItemModel* GetAlbumModel() const;
+  QSortFilterProxyModel* GetAlbumModel() const;
   QSortFilterProxyModel* GetPlaylistModel() const;
   QSortFilterProxyModel* GetDirModel() const;
   void Progress(uint64_t const sent, uint64_t const total);

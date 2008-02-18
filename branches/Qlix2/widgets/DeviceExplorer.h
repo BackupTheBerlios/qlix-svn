@@ -91,7 +91,9 @@ private:
   void updateDeviceSpace();
   void clearActions();
 
-  QModelIndexList removeAlbumDuplicates(QModelIndexList&);
+//  QModelIndexList removeAlbumDuplicates(const QModelIndexList&);
+  QModelIndexList removeIndexDuplicates(const QModelIndexList&,
+                                        const QSortFilterProxyModel*);
   QGridLayout* _layout; 
   ViewPort _view;
 
@@ -107,7 +109,7 @@ private:
   QListView* _queueView;
 
   QTreeView* _deviceView;
-  QAbstractItemModel* _albumModel;
+  QSortFilterProxyModel* _albumModel;
   QSortFilterProxyModel* _plModel;
   QSortFilterProxyModel* _dirModel;
 

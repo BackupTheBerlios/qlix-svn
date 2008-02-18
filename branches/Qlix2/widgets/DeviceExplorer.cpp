@@ -442,20 +442,17 @@ void DeviceExplorer::TransferFromDevice()
     }
 
     QAbstractItemModel* theModel = _deviceView->model();
-
-    if (theModel == _albumModel)
-      idxList = removeAlbumDuplicates(dupList);
-    else if (theModel== _plModel)
-      assert(false);
-    else if (theModel == _dirModel)
-      assert(false);
-    
+    assert(theModel == _albumModel || theModel == _plModel ||
+           theModel == _dirModel);
+    idxList = removeIndexDuplicates(dupList, (QSortFilterProxyModel*)theModel);
 
     MTP::GenericObject* obj;
     while(!idxList.empty())
     {
       QModelIndex temp = idxList.front();
+//      temp = _dirModel->mapToSource(temp);
       obj = (MTP::GenericObject*) temp.internalPointer();
+      assert(temp.isValid());
 //      QString name = _albumModel->data(0, 0, idxList.front);
 //      qDebug() << "Transfer this: " << name << "from device";
       _device->TransferFrom(obj, transferPath);
@@ -479,10 +476,19 @@ void DeviceExplorer::SwitchFilesystemDir(const QModelIndex& tmpIdx)
   _fsView->setRootIndex (tmpIdx);
 }
 
-QModelIndexList DeviceExplorer::removeAlbumDuplicates(QModelIndexList& in_list)
+/**
+ * This function removes duplicate selection implied by selecting a parent 
+ * widgets and one of its children. The parent widget's selection implies all
+ * widgets under it are selected, thus it gets precedence when transfering 
+ * and deletng.
+ * @param in_list the list of indicies selected
+ */
+/*
+QModelIndexList DeviceExplorer::removeAlbumDuplicates
+                (const QModelIndexList& in_list)
 {
   QModelIndexList ret;
-  QModelIndexList::iterator iter = in_list.begin();
+  QModelIndexList::const_iterator iter = in_list.constBegin();
   for( ;iter != in_list.end(); iter++)
   {
     MTP::GenericObject* temp = (MTP::GenericObject*) (*iter).internalPointer();
@@ -516,6 +522,45 @@ QModelIndexList DeviceExplorer::removeAlbumDuplicates(QModelIndexList& in_list)
       ret.push_back(*iter);
   }
   qDebug() << "Duplicates found: " << dupcount;
+  return ret;
+}
+*/
+
+QModelIndexList DeviceExplorer::removeIndexDuplicates(
+                                const QModelIndexList& in_list, 
+                                const QSortFilterProxyModel* in_model)
+{
+  qDebug() << "Called removeFileFolderDuplicates";
+  QModelIndexList ret;
+  QModelIndexList tempList = in_list;
+  count_t dupCount = 0;
+  while (!tempList.empty())
+  {
+    QModelIndex first = tempList.front();
+    tempList.pop_front();
+    QModelIndex parent = first;
+    bool found = false;
+    while (parent.isValid())
+    {
+      QModelIndex rightOfFirst;
+      foreach(rightOfFirst, tempList)
+      {
+        if (rightOfFirst == parent)
+        {
+          found = true;
+          dupCount++;
+          break;
+        }
+      }
+      if (found)
+        break;
+      parent = in_model->parent(parent);
+    }
+    if (!found)
+      ret.push_back(in_model->mapToSource(first));
+  }
+  qDebug() << "Found :" << dupCount << " duplicates" << endl;
+  qDebug() << "ret size:" <<ret.size();
   return ret;
 }
 
