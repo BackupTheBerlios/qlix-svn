@@ -21,12 +21,14 @@ int main(int argc, char* argv[])
   QCoreApplication::setOrganizationName("QlixIsOSS");
   QCoreApplication::setOrganizationDomain("Qlix.berlios.de");
   QCoreApplication::setApplicationName("Qlix");
-  qDebug() << "Subsystem is up!";
   QSettings settings;
   QString ret = settings.value("DefaultDevice").toString();
-  qDebug() << "Stored: " << ret << endl;
   QApplication app(argc, argv);
   app.setStyle("Plastique");
+  //app.setStyleSheet("QTreeView::branch:!adjoins-item{ border-color: none;}"); works
+  //app.setStyleSheet("QTreeView::branch:!adjoins-item{ background: none}"); 
+//  app.setStyleSheet("QTreeView::branch:!adjoins-item:!has-children{ foreground: red}"); 
+ // app.setStyleSheet("QTreeView::branch:adjoins-item:has-children{ background: cyan}"); 
 
   QlixMainWindow qmw(&_subSystem);
   qmw.show();

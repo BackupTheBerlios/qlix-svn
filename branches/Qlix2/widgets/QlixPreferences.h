@@ -22,7 +22,11 @@ private:
   QToolButton* _saveButton;
   QAction* _saveAction;
   QGridLayout* _layout;
+
   QLabel* _defaultDeviceLabel;
   QLineEdit* _defaultDeviceLine;
+
+  QLabel* _defaultDirPathLabel;
+  QLineEdit* _defaultDirPathLine;
 };
 #endif

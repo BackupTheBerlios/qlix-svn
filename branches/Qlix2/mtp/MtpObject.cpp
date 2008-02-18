@@ -309,11 +309,20 @@ Album::Album(LIBMTP_album_t* in_album,
              GenericObject (MtpAlbum, in_album->album_id),
              _sample(in_sample)
 {
+  cout << "Sample of type: " << _sample.filetype << endl;
   assert(in_album);
   _rawAlbum = in_album;
   _initialized = false;
 }
-
+/**
+ * This function sets the representative sample of the album to the passed 
+ * param
+ * @param in_sample the sample that will be set for this album 
+ */
+void Album::SetCover(LIBMTP_filesampledata_t const * in_sample)
+{
+  _sample = *in_sample;
+}
 
 /** Returns the sample data for the album
  * @return a reference to the LIBMTP_sampledata_t that was pulled from 
@@ -555,7 +564,6 @@ uint32_t Playlist::ChildTrackID(count_t idx) const
  * LIBMTP data structure as it might become stale.
  */
 void Playlist::SetInitialized() { _initialized = true; }
-}
 
 /** 
  * @return the visual row index for this playlist
@@ -568,4 +576,4 @@ count_t Playlist::GetRowIndex() const { return _rowIndex; }
  * */
 void Playlist::SetRowIndex(count_t in_row) { _rowIndex = in_row; }
 
-
+}

@@ -58,6 +58,11 @@ public:
 
   void ReleaseDevice();
   void FreeSpace(uint64_t*, uint64_t*);
+
+  bool MtpDevice::UpdateAlbumArt(MTP::Album* in_album, 
+                               LIBMTP_filesampledata_t* in_sample);
+
+  LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample();
   LIBMTP_mtpdevice_t* RawDevice() const;
 private:
   LIBMTP_mtpdevice_t* _device;

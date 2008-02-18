@@ -39,8 +39,7 @@ void MtpSubSystem::Initialize()
     _devList.push_back(dev);
   }
 #endif
-
-  cout << " sub system Detected " << _devList.size() << " devices" << endl;
+  //cout << " sub system Detected " << _devList.size() << " devices" << endl;
 }
 
 /**

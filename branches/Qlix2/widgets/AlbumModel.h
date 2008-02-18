@@ -6,10 +6,16 @@
 #include <QPixmap>
 #include <mtp/MtpDevice.h>
 #include "types.h"
-#include "QtDebug"
-#include "QIcon"
+#include <QtDebug>
+#include <QIcon>
+#include <QDir>
+#include <QFileInfo>
 #include <libmtp.h>
 #include <QFont>
+#include <QImage>
+#include <QByteArray>
+#include <QBuffer>
+#include "modeltest/modeltest.h"
 /**
  * @class This class wraps over the MTP::Album structures and provides a
  * hierarchy that displays tracks underneath albums
@@ -28,6 +34,7 @@ public:
 
 private:
   void addAlbum(MTP::Album*);
+  bool discoverCoverArt(const QString&, const QString&, QFileInfo*);
   MtpDevice* _device;
 };
 #endif

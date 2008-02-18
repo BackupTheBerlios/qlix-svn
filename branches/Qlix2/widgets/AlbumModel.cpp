@@ -1,4 +1,4 @@
-//TODO figure out why we have to subtract -1 from data
+//TODO  check duplicate enteries when adding files to an album
 #include "widgets/AlbumModel.h"
 /**
  * Construct a new AlbumModel
@@ -21,13 +21,20 @@ AlbumModel::AlbumModel(MtpDevice* in_dev, QObject* parent) :
 QModelIndex AlbumModel::index(int row, int col, 
                         const QModelIndex& parent) const
 { 
-  if(!parent.isValid() && (row >= (int)_device->AlbumCount()))
+  if(col < 0 || row < 0)
     return QModelIndex();
 
-  else if (!parent.isValid() )
+  if(!parent.isValid() && row >= (int)_device->AlbumCount())
+    return QModelIndex();
+
+  if (!parent.isValid() && col == 0)
   {
     MTP::Album* album = _device->Album(row);
     return createIndex(row, col, (void*) album);
+  }
+  if (!parent.isValid() && col > 0)
+  {
+    return QModelIndex();
   }
 
   MTP::GenericObject* obj= (MTP::GenericObject*)parent.internalPointer();
@@ -107,8 +114,8 @@ int AlbumModel::rowCount(const QModelIndex& parent) const
 int AlbumModel::columnCount(const QModelIndex& parent ) const 
 { 
   MTP::GenericObject* obj = (MTP::GenericObject*)parent.internalPointer();
-  if (obj && obj->Type() == MtpAlbum)
-    return 2;
+//  if (obj && obj->Type() == MtpAlbum)
+//    return 2;
   return 1;
 }
 /**
@@ -118,6 +125,8 @@ int AlbumModel::columnCount(const QModelIndex& parent ) const
  */
 QVariant AlbumModel::data(const QModelIndex& index, int role ) const
 { 
+  if (!index.isValid())
+    return QVariant();
   if (role == Qt::DisplayRole)
   {
     MTP::GenericObject* temp = (MTP::GenericObject*) index.internalPointer();
@@ -126,13 +135,13 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
         MTP::Album* tempAlbum = (MTP::Album*)temp;
         QString first = QString::fromUtf8(tempAlbum->Name());
 //        QString second = QString('\n') + QString("    ") + QString::fromUtf8(tempAlbum->Artist());
-        return (first);
+        return QVariant(first);
     }
     else if (temp->Type() == MtpTrack && index.column() == 0)
     {
         MTP::Track* tempTrack = (MTP::Track*)temp;
         QString temp = QString::fromUtf8(tempTrack->Name());
-        return temp;
+        return QVariant(temp);
     }
     return QVariant();
   }
@@ -143,21 +152,26 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
     {
         MTP::Album* tempAlbum = (MTP::Album*)temp;
         LIBMTP_filesampledata_t sample = tempAlbum->SampleData();
-        if (sample.filetype != LIBMTP_FILETYPE_JPEG)
+        if (sample.size > 0 && sample.data )
+          /*&& 
+            (sample.filetype == LIBMTP_FILETYPE_JPEG ||
+            sample.filetype == LIBMTP_FILETYPE_JPX ||
+            sample.filetype == LIBMTP_FILETYPE_JP2))
+            */
         {
           QPixmap ret;
-          if (sample.size > 0 && sample.data)
-          {
-            ret.loadFromData( (const uchar*)sample.data, sample.size);
-            return ret.scaledToWidth(24, Qt::SmoothTransformation);
-          }
-          ret.load(":/pixmaps/miscAlbumCover.png");
-
+          ret.loadFromData( (const uchar*)sample.data, sample.size);
+#ifdef SIMULATE_TRANSFERS
+          qDebug()  << "Actual sample found in simulate mode!";
+#endif
           return ret.scaledToWidth(24, Qt::SmoothTransformation);
-         // return ret;
         }
-        else
-          qDebug() << "album decoration is not a jpeg:" << sample.filetype;
+        else 
+        {
+//          qDebug() << "album decoration is not a jpeg:" << sample.filetype  << " with size: " << sample.size;
+          QPixmap ret("pixmaps/miscAlbumCover.png");
+          return ret.scaledToWidth(24, Qt::SmoothTransformation);
+        }
     }
     else if (temp->Type() == MtpTrack && index.column() == 0)
     {
@@ -170,7 +184,7 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
   {
     MTP::GenericObject* temp = (MTP::GenericObject*) index.internalPointer();
     if (temp->Type() == MtpAlbum && index.column() == 0)
-      return QSize(26, 26);
+      return QSize(28, 28);
   }
   if (role == Qt::FontRole)
   {
@@ -218,11 +232,41 @@ void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
   if (!trackAlbum)
   {
     QModelIndex temp;
-    //first we try and add a new album to the device
+    //first we try and add a new album to the device because one does not exist..
     if(!_device->CreateNewAlbum(in_track, &trackAlbum))
     {
       qDebug() << "Failed to create new album";
       return;
+    }
+    //Try and find some cover art
+    QFileInfo cover;
+    bool ret = discoverCoverArt(in_path, 
+                                QString::fromUtf8(trackAlbum->Name()),
+                                &cover);
+    if (ret)
+    {
+      LIBMTP_filesampledata_t* sample = _device->DefaultJPEGSample();
+      count_t width = sample->width;
+      count_t height = sample->height;
+      if (height > width)
+        height = width;
+      else
+        width = height;
+      QImage img(cover.canonicalFilePath());
+      img = img.scaled( QSize(width, height), Qt::KeepAspectRatio,
+                               Qt::SmoothTransformation);
+      QByteArray barray;
+      QBuffer buffer(&barray);
+      buffer.open(QIODevice::WriteOnly);
+      img.save(&buffer, "JPEG");
+      sample->filetype = LIBMTP_FILETYPE_JPEG;
+      sample->size = barray.size();
+      sample->width = width;
+      sample->height = height;
+      char* newBuffer = new char[barray.size()];
+      memcpy(newBuffer, barray.data(), barray.size());
+      sample->data = newBuffer;
+      _device->UpdateAlbumArt(trackAlbum, sample);
     }
 
     //if thats successful we can update the view..
@@ -274,3 +318,37 @@ void AlbumModel::addAlbum(MTP::Album*)
 {
 }
 
+
+bool AlbumModel::discoverCoverArt(const QString& in_path, const QString& in_albumName,
+                      QFileInfo* outFile)
+{
+  QFileInfo finfo(in_path);
+  QDir search_dir;
+  if (finfo.isFile())
+    search_dir = finfo.dir();
+  else
+    search_dir = QDir(in_path);
+
+  QFileInfoList children = search_dir.entryInfoList(QDir::Files);
+  QString albumName = in_albumName + ".jpg";
+  QString albumNameAlt= in_albumName +".jpeg";
+
+  while (!children.isEmpty())
+  {
+    QFileInfo temp = children.front();
+    QString name= temp.fileName().toLower();
+    if (name == "cover.jpg" || name == "cover.jpeg" ||
+        name == albumName.toLower() ||
+        name == albumNameAlt.toLower() ||  name == "folder.jpg" ||
+        name == "folder.jpeg" || name == "album art.jpg" || 
+        name == "album art.jpeg" || name == "albumart.jpg" ||
+        name == "albumart.jpeg")
+    {
+      (*outFile) = temp;
+        //find out the default image size
+      return true;
+    }
+    children.pop_front();
+  }
+  return false;
+}

@@ -1,8 +1,11 @@
 #include <QWidget>
 #include <QToolBar>
 #include <QSpacerItem>
+#include <QFileInfo>
+#include <QApplication>
 #include <QProgressBar>
 #include <QAction>
+#include <QActionGroup>
 #include <QToolButton>
 #include <QGridLayout>
 #include <QDirModel>
@@ -24,9 +27,9 @@
 #include "types.h"
 
 /**
- * @class The DeviceExplorer widget generally will show two panes
- * one will expose the local filesystem, the other will expose the device
- * database. In specific instances it will display the preferences widget
+ * @class The DeviceExplorer widget shows two panes one of which will expose
+ * the local filesystem, the other will expose the device database. In specific
+ * instances it will display the preferences widget
  * and the device management widget. Over all this widget ties all 
  * functionality of Qlix into one main widget. It is the central widget 
  * that is set in QlixMainWindow
@@ -53,6 +56,8 @@ signals:
 private slots:
   void TransferTrackToDevice();
   void TransferFromDevice();
+  void DeleteFromDevice();
+  void SwitchFilesystemDir(const QModelIndex&);
 private:
   enum ViewPort
   {
@@ -73,6 +78,10 @@ private:
 
   void setupConnections();
   void showAlbumTools();
+
+  void showGeneralTools();
+  void hideGeneralTools();
+
   void showPlaylistTools();
   void showFileTools();
   void hideAlbumTools();
@@ -81,6 +90,8 @@ private:
 
   void updateDeviceSpace();
   void clearActions();
+
+  QModelIndexList removeAlbumDuplicates(QModelIndexList&);
   QGridLayout* _layout; 
   ViewPort _view;
 
@@ -133,11 +144,14 @@ private:
   QAction* _newFolder;
   QVector <QAction*> _fileActionList;
 
-  //common to file and playlist
-  QAction* _delete;
+  QAction* _viewQueue;
+  QAction* _hideQueue;
+  //common to all objects
+  QActionGroup* _commonDeviceActions;
   QAction* _transferFromDevice;
   QAction* _addToQueue;
-  QAction* _viewQueue;
   QAction* _sync;
+  QAction* _deleteSeperator;
+  QAction* _delete;
 };
 

@@ -84,6 +84,7 @@ void QMtpDevice::run()
           delete sendCmd;
           break; 
         }
+
         else
         {
 
@@ -107,7 +108,7 @@ void QMtpDevice::run()
         QFileInfo check (temp, createFolder->Name);
         ret = (check.exists() && check.isDir());
         if (ret)
-          qDebug() << "Succes creating folder";
+          qDebug() << "Success creating folder";
         else
           qDebug() << "Failed creating folder";
         //Todo update the model and delete memory
@@ -151,6 +152,7 @@ void QMtpDevice::initializeDeviceStructures()
   qDebug() << "Discovered name to be: " << _name;
 #endif
   _albumModel = new AlbumModel(_device);
+  new ModelTest(_albumModel, this);
   _dirModel = new DirModel(_device);
   _plModel = new PlaylistModel(_device);
 
@@ -244,9 +246,6 @@ void QMtpDevice::TransferTrack(QString inpath)
   qDebug() << "Attempting to transfer file: " << inpath;
 }
 
-
-
-
 /**
  * Transfers an object from device the passed location
 */
@@ -282,6 +281,12 @@ void QMtpDevice::TransferFrom(MTP::GenericObject* obj, QString filePath)
     { 
       MTP::Album* album = (MTP::Album*) obj;
       MTP::Track* currentTrack;
+
+      QDir albumDir(filePath);
+      QString albumName = QString::fromUtf8(album->Name());
+      bool albumDirCreated = albumDir.mkdir(albumName);
+      if (albumDirCreated)
+        filePath = filePath + QDir::separator() + albumName;
       for (count_t i = 0; i < album->TrackCount(); i++)
       {
         currentTrack = album->ChildTrack(i);
@@ -290,6 +295,19 @@ void QMtpDevice::TransferFrom(MTP::GenericObject* obj, QString filePath)
         cmd = new GetObjCmd (currentTrack->ID(), actualPath);
         IssueCommand(cmd);
       }
+      LIBMTP_filesampledata_t cover = album->SampleData();
+      if (cover.size == 0)
+        break;
+
+      QImage img;
+      img.loadFromData( (const uchar*) cover.data, cover.size);
+      QString coverName = albumName + ".jpg";
+      QString coverPath;
+      //no need to check albumDirCreated again, the path already holds the
+      //right directory
+        coverPath = filePath + QDir::separator() + coverName;
+
+      img.save(coverPath);
       break;
     }
     case MtpPlaylist:

@@ -56,3 +56,4 @@ unix {
   DEPENDPATH += "/usr/local/lib/"
   QMAKE_CXXFLAGS += $$TAGLIB_INC
 }
+include(modeltest/modeltest.pri)

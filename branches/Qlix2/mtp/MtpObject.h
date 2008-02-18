@@ -127,6 +127,7 @@ public:
   Album(LIBMTP_album_t*, const LIBMTP_filesampledata_t&);
   const LIBMTP_filesampledata_t& SampleData() const;
   count_t TrackCount() const;
+  void SetCover(LIBMTP_filesampledata_t const * in_sample);
 
   LIBMTP_album_t const* RawAlbum();
   uint32_t ChildTrackID(count_t ) const;

@@ -16,6 +16,7 @@
         <file>pixmaps/filelist.png</file>
         <file>pixmaps/preferences.png</file>
         <file>pixmaps/managedevice.png</file>
+        <file>pixmaps/ShowQueue.png</file>
         <file>pixmaps/playlisticon.png</file>
         <file>pixmaps/ActionBar/AddToPlaylist.png</file>
         <file>pixmaps/ActionBar/AddToQueue.png</file>
@@ -30,11 +31,16 @@
         <file>pixmaps/ActionBar/NewPlaylist.png</file>
         <file>pixmaps/ActionBar/ShowDeviceTracks.png</file>
         <file>pixmaps/ActionBar/ShowFSTracks.png</file>
-        <file>pixmaps/ActionBar/ShowQueue.png</file>
-        <file>pixmaps/ActionBar/Sync.png</file>
+        <file>pixmaps/ActionBar/SyncQueue.png</file>
         <file>pixmaps/ActionBar/TransferFile.png</file>
-        <file>pixmaps/ActionBar/TransferFile.png</file>
+        <file>pixmaps/ActionBar/TransferFromDevice.png</file>
         <file>pixmaps/DetectDevices.png</file>
+        <file>pixmaps/TreeView/Vline.png</file>
+        <file>pixmaps/TreeView/BlankVline.png</file>
+        <file>pixmaps/TreeView/branch-closed.png</file>
+        <file>pixmaps/TreeView/branch-open.png</file>
+        <file>pixmaps/TreeView/branch-more.png</file>
+        <file>pixmaps/TreeView/branch-end.png</file>
     </qresource>
 </RCC>
 

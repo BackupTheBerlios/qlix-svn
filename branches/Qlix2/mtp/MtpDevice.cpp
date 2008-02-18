@@ -3,7 +3,9 @@
 //     No this is a bad idea as sending files updates the file id we discover
 
 #include "MtpDevice.h"
+#undef QLIX_DEBUG
 //#define SIMULATE_TRANSFERS
+
 /**
  * Creates a MtpDevice
  * @param in_device The raw LIBMtp device
@@ -373,20 +375,19 @@ void MtpDevice::createObjectStructure()
   {
     LIBMTP_filesampledata_t temp;
     LIBMTP_Get_Representative_Sample(_device, albumRoot->album_id, &temp); 
-    cout << "Discovred a sample of type: " << temp.filetype << endl;
-    cout << "Discovred a sample of height: " << temp.height << " of width: "<< temp.width << " size: " << temp.size << endl;
+//    cout << "Discovred a sample of type: " << temp.filetype << endl;
+//    cout << "Discovred a sample of height: " << temp.height << " of width: "<< temp.width << " size: " << temp.size << endl;
 
     count_t size = _objectMap.size();
 
     MTP::Album* currentAlbum = new MTP::Album(albumRoot, temp);
-    _albums.push_back(currentAlbum);
     currentAlbum->SetRowIndex( _albums.size());
+    _albums.push_back(currentAlbum);
 
     MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
     _objectMap[currentAlbum->ID()] = currentAlbum; 
 
     //crosslink check
-    //coun
     if(_objectMap.size() != size+1)
     {
       assert(previous);
@@ -429,8 +430,8 @@ void MtpDevice::createObjectStructure()
   cout << "Crosslinked entries: " << _crossLinked.size() << endl;
 
 #ifdef QLIX_DEBUG
-  dbgPrintSupportedFileTypes();
-  dbgPrintFolders(NULL, 0);
+  //dbgPrintSupportedFileTypes();
+  //dbgPrintFolders(NULL, 0);
 #endif
 }
 
@@ -761,6 +762,44 @@ bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
   sample.data = NULL;
   (*out_album) = new MTP::Album(newAlbum, sample);
   return true;
+}
+
+/**
+ * This function updates the representative sample of album on the device 
+ * @return true if the operation succeeded, false otherwise.
+ */
+bool MtpDevice::UpdateAlbumArt(MTP::Album* in_album, 
+                               LIBMTP_filesampledata_t* in_sample)
+{
+  int ret = LIBMTP_Send_Representative_Sample(_device,
+                                              in_album->ID(), in_sample);
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+  in_album->SetCover(in_sample);
+  return true;
+}
+
+/**
+ * This function retreives the default JPEG sample parameters from the device
+ * @return a preallocated LIBMTP_filesampledata_t* with sane values it is up to
+ *         the caller to call LIBMTP_delete_object to free up the memory
+ */
+//TODO is this safe when mtp is not initialized?
+LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
+{
+  LIBMTP_filesampledata_t* sample;
+  int ret = LIBMTP_Get_Representative_Sample_Format(_device, 
+                                                    LIBMTP_FILETYPE_JPEG,
+                                                    &sample);
+  if (ret != 0)
+  { 
+    processErrorStack();
+    return NULL;
+  }
+  return sample;
 }
 
 /**

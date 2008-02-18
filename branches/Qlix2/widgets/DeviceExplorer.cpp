@@ -10,6 +10,7 @@ DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
                               _progressBar(NULL)
 {
   qRegisterMetaType<count_t>("count_t");
+  qRegisterMetaType<QModelIndex>("QModelIndex");
   _layout = new QGridLayout(this);
 
   _preferencesWidget = new QlixPreferences();
@@ -48,11 +49,20 @@ DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
   _fsModel->setFilter( QDir::Files | QDir::Dirs | QDir::Hidden 
                       |QDir::Readable);
   _fsModel->setLazyChildCount(true);
-  _fsView->setRootIndex(_fsModel->index(QDir::currentPath()));
 
-  setupToolBars();
+  QSettings settings;
+  QString defaultDirLocation = settings.value("FSDirectory").toString();
+  QFileInfo defaultDir(defaultDirLocation);
+  if (!defaultDir.exists() || !defaultDir.isDir() || !defaultDir.isReadable())
+    _fsView->setRootIndex(_fsModel->index(QDir::currentPath()));
+  else
+    _fsView->setRootIndex(_fsModel->index(defaultDirLocation));
+
+  setupCommonTools();
   setupConnections();
   setupMenus();
+
+  _deviceView->addActions(_commonDeviceActions->actions());
 }
 
 
@@ -74,10 +84,7 @@ void DeviceExplorer::ShowAlbums()
   }//  _sortedModel->setSourceModel(_albumModel);
   if (_deviceView->model() != _albumModel)
     _deviceView->setModel(_albumModel);
-
-  hidePlaylistTools();
-  hideFileTools();
-  showAlbumTools();
+  _deviceView->setStyleSheet("QTreeView::branch:!adjoins-item, QTreeView::branch:!has-children:open{ background: none} QTreeView::branch:has-children:closed{ image: url(:/pixmaps/TreeView/branch-closed.png)} QTreeView::branch:has-children:open{ image: url(:/pixmaps/TreeView/branch-open.png)}"); 
 }
 
 void DeviceExplorer::setupToolBars()
@@ -93,10 +100,7 @@ void DeviceExplorer::setupToolBars()
 // Incoroporates the progress bar as well 
 
   _layout->addWidget(_tools, 0,0);
-  setupCommonTools();
-  setupAlbumTools();
-  setupPlaylistTools();
-  setupFileTools();
+  _tools->addActions(_commonDeviceActions->actions());
 }
 
 void DeviceExplorer::setupDeviceView() 
@@ -134,9 +138,6 @@ void DeviceExplorer::ShowPlaylists()
 
   if (_deviceView->model() != _plModel)
     _deviceView->setModel(_plModel);
-  hideAlbumTools();
-  hideFileTools();
-  showPlaylistTools();
 }
 
 /**
@@ -158,9 +159,7 @@ void DeviceExplorer::ShowFiles()
   }
   if (_deviceView->model() != _dirModel)
     _deviceView->setModel(_dirModel);
-    hideAlbumTools();
-    hidePlaylistTools();
-    showFileTools();
+  _deviceView->setStyleSheet("");
 }
 void DeviceExplorer::UpdateProgressBar(const QString& label,
                                        count_t percent)
@@ -209,11 +208,9 @@ void DeviceExplorer::ShowPreferences()
     _deviceView->hide();
     _fsView->hide();
     _queueView->hide();
-    _queueView->hide();
     _preferencesWidget->show();
     _otherWidgetShown = true;
   }
-  _tools->hide();
 }
 
 void DeviceExplorer::ShowQueue( bool showQueue )
@@ -249,20 +246,19 @@ void DeviceExplorer::ShowDeviceManager()
     _deviceManagerWidget->show();
     _otherWidgetShown = true;
   }
-  _tools->hide();
 }
 
 void DeviceExplorer::setupConnections()
 {
   connect(_fsView, SIGNAL( doubleClicked ( const QModelIndex& )),
-          _fsView, SLOT( setRootIndex (const QModelIndex&) ) );
-  connect(_viewQueue, SIGNAL(triggered(bool)), 
-          this, SLOT(ShowQueue(bool)));
+          this, SLOT(SwitchFilesystemDir(const QModelIndex&)));
 
-  connect(_transferTrackToDevice, SIGNAL(triggered(bool)),
-          this, SLOT(TransferTrackToDevice()));
   connect(_transferFromDevice, SIGNAL(triggered(bool)),
           this, SLOT(TransferFromDevice()));
+
+  connect(_delete, SIGNAL(triggered(bool)),
+          this, SLOT(DeleteFromDevice()));
+
   connect(_device, SIGNAL(UpdateProgress(QString, count_t)), 
           this, SLOT(UpdateProgressBar(QString, count_t)));
         
@@ -324,7 +320,7 @@ void DeviceExplorer::updateDeviceSpace()
                                         QLatin1Char( ' ' ));
   }
   QString label =  usedDisplaySize + " of " + totalDisplaySize ;
-  count_t percent = (((double) used / (double) total) * 100);
+  count_t percent = (count_t)(((double) used / (double) total) * 100);
 
   qDebug() << "Free space reported: " << free;
   qDebug() << "Total space reported: " << total;
@@ -332,134 +328,39 @@ void DeviceExplorer::updateDeviceSpace()
   _progressBar->setValue(percent);
 }
 
-void DeviceExplorer::showAlbumTools()
-{
-  _tools->show();
-  for (int i =0; i < _albumActionList.size(); i++)
-    _albumActionList[i]->setVisible(true);
-  _tools->setMinimumSize(13, 12);
-  clearActions();
-  _fsView->addAction(_transferTrackToDevice);
-  _fsView->addAction(_addToQueue);
-  _fsView->addAction(_sync);
-  _deviceView->addAction(_transferFromDevice);
-  _deviceView->addAction(_delete);
-  _view =AlbumsView;
-}
-
-
-void DeviceExplorer::showPlaylistTools()
-{
-  _tools->show();
-  for (int i =0; i< _playlistActionList.size(); i++)
-    _playlistActionList[i]->setVisible(true);
-  _tools->setMinimumSize(12, 12);
-  clearActions();
-  _deviceView->addAction(_transferFromDevice);
-  _deviceView->addAction(_delete);
-  _view = PlaylistView;
-}
-
-void DeviceExplorer::showFileTools()
-{
-  for (int i =0; i < _fileActionList.size(); i++)
-     _fileActionList[i]->setVisible(true);
-  _tools->setMinimumSize(12, 13);
-  clearActions();
-  _deviceView->addAction(_transferFromDevice);
-  _deviceView->addAction(_delete);
-  _view = FileView;
-}
-
-void DeviceExplorer::hideAlbumTools()
-{
-  for (int i =0; i < _albumActionList.size(); i++)
-    _albumActionList[i]->setVisible(false);
-}
-
-void DeviceExplorer::hidePlaylistTools()
-{
-  for (int i =0; i< _playlistActionList.size(); i++)
-    _playlistActionList[i]->setVisible(false);
-}
-
-void DeviceExplorer::hideFileTools()
-{
-  for (int i =0; i < _fileActionList.size(); i++)
-     _fileActionList[i]->setVisible(false);
-}
-
-
 //Must be done before all others
 void DeviceExplorer::setupCommonTools()
 {
+  _commonDeviceActions = new QActionGroup(this);
   _transferFromDevice = new QAction( 
     QIcon(":/pixmaps/ActionBar/TransferFromDevice.png"), 
     QString("Transfer From Device"), NULL); 
+
+  _commonDeviceActions->addAction(_transferFromDevice);
 
   _addToQueue= new QAction( 
     QIcon(":/pixmaps/ActionBar/AddToQueue.png"), 
     QString("Add to queue"), NULL); 
 
-  _viewQueue = new QAction( 
-    QIcon(":/pixmaps/ActionBar/ShowQueue.png"), 
-    QString("Show Queue"), NULL); 
+  _commonDeviceActions->addAction(_addToQueue);
+
+  _sync = new QAction( 
+    QIcon(":/pixmaps/ActionBar/SyncQueue.png"), 
+    QString("Sync"), NULL); 
+
+  _commonDeviceActions->addAction(_sync);
+
+  QAction* _deleteSeperator = new QAction(NULL);
+  _deleteSeperator->setSeparator(true);
+  _commonDeviceActions->addAction(_deleteSeperator);
 
   _delete = new QAction( 
     QIcon(":/pixmaps/ActionBar/DeleteFile.png"), 
     QString("Delete"), NULL); 
 
-  _sync = new QAction( 
-    QIcon(":/pixmaps/ActionBar/Sync Queue.png"), 
-    QString("Sync"), NULL); 
+  _commonDeviceActions->addAction(_delete);
 }
 
-void DeviceExplorer::setupPlaylistTools()
-{
-  // The Playlist toolset
-  _newPlaylist = new QAction( 
-    QIcon(":/pixmaps/ActionBar/NewPlaylist.png"), 
-    QString("New Playlist"), NULL); 
-  _playlistActionList.push_back(_newPlaylist);
-
-  _showDeviceTracks = new QAction( 
-    QIcon(":/pixmaps/ActionBar/ShowDeviceTracks.png"), 
-    QString("Device Tracks"), NULL); 
-  _playlistActionList.push_back(_showDeviceTracks);
-
-  _showFSTracks = new QAction( 
-    QIcon(":/pixmaps/ActionBar/ShowFSTracks.png"), 
-    QString("Computer Files"), NULL); 
-  _playlistActionList.push_back(_showFSTracks);
-
-  _deletePlaylist = new QAction( 
-    QIcon(":/pixmaps/ActionBar/DeletePlaylist.png"), 
-    QString("Delete Playlist"), NULL); 
-  _playlistActionList.push_back(_deletePlaylist);
-
-  hidePlaylistTools();
-  for (int i =0; i< _playlistActionList.size(); i++)
-    _tools->addAction(_playlistActionList[i]);
-}
-
-void DeviceExplorer::setupFileTools()
-{
-  //Add common tools
-  _fileActionList.push_back(_addToQueue);
-  _fileActionList.push_back(_viewQueue);
-  _fileActionList.push_back(_delete);
-  _fileActionList.push_back(_sync);
-
-  //The Filelist toolset 
-  _newFolder = new QAction( 
-    QIcon(":/pixmaps/ActionBar/NewFoler.png"), 
-    QString("New Folder"), NULL); 
-  _fileActionList.push_back(_newFolder);
-
-  hideFileTools();
-  for (int i =0; i < _fileActionList.size(); i++)
-    _tools->addAction( _fileActionList[i]);
-}
 
 void DeviceExplorer::setupFileSystemView()
 {
@@ -474,67 +375,32 @@ void DeviceExplorer::setupFileSystemView()
   _queueView->setModel(_fsModel);
 }
 
-void DeviceExplorer::setupAlbumTools()
-{
-    _transferTrackToDevice = new QAction( 
-    QIcon(":/pixmaps/ActionBar/TransferToDevice.png"), 
-    QString("Transfer Track Now"), NULL); 
-
-  _albumActionList.push_back(_addToQueue);
-  _albumActionList.push_back(_viewQueue);
-  _albumActionList.push_back(_sync);
-
-  hideAlbumTools();
-  for (int i =0; i< _albumActionList.size(); i++)
-    _tools->addAction(_albumActionList[i]);
-}
-
-void DeviceExplorer::clearActions()
-{
-  QList<QAction*> list = _fsView->actions();
-  while(list.size() > 0)
-  {
-    _fsView->removeAction(list.first());
-    list.pop_front();
-  }
-  list = _deviceView->actions();
-  while(list.size() > 0)
-  {
-    _deviceView->removeAction(list.first());
-    list.pop_front();
-  }
-}
 
 void DeviceExplorer::setupMenus()
 {
   _fsView->setContextMenuPolicy(Qt::ActionsContextMenu);
   _deviceView->setContextMenuPolicy(Qt::ActionsContextMenu);
-  _deviceView->setContextMenuPolicy(Qt::ActionsContextMenu);
-  setContextMenuPolicy(Qt::ActionsContextMenu);
+  //setContextMenuPolicy(Qt::ActionsContextMenu);
 }
-
-
-
 
 void DeviceExplorer::TransferTrackToDevice()
 {
-  qDebug() << "called TRansfer Track to device";
-    QList<QString> fileList;
-    QItemSelectionModel* selectedModel = _fsView->selectionModel();
-    QModelIndexList idxList = selectedModel->selectedRows();
-    if (idxList.empty())
-    {
-      qDebug() << "nothing selected!";
-      return;
-    }
+  QList<QString> fileList;
+  QItemSelectionModel* selectedModel = _fsView->selectionModel();
+  QModelIndexList  idxList = selectedModel->selectedRows();
+  if (idxList .empty())
+  {
+    qDebug() << "Nothing selected!";
+    return;
+  }
 
-    while(!idxList.empty())
-    {
-      QString fpath = _fsModel->filePath(idxList.front());
-      qDebug() << "Fpath is: " << fpath;
-      fileList.push_back(fpath);
-      idxList.pop_front();
-    }
+  while(!idxList.empty())
+  {
+    QString fpath = _fsModel->filePath(idxList.front());
+    qDebug() << "Fpath is: " << fpath;
+    fileList.push_back(fpath);
+    idxList.pop_front();
+  }
 /*
     selctedModel = _deviceView->selectionModel();
     idxList = selectedModel->selectedRows();
@@ -567,27 +433,28 @@ void DeviceExplorer::TransferFromDevice()
 
     QString transferPath = info.canonicalFilePath();
     QItemSelectionModel* selectedModel = _deviceView->selectionModel();
-    QModelIndexList idxList = selectedModel->selectedRows();
-    if (idxList.empty())
+    QModelIndexList dupList= selectedModel->selectedRows();
+    QModelIndexList idxList;
+    if (dupList.empty())
     {
       qDebug() << "nothing selected!";
       return;
     }
+
+    QAbstractItemModel* theModel = _deviceView->model();
+
+    if (theModel == _albumModel)
+      idxList = removeAlbumDuplicates(dupList);
+    else if (theModel== _plModel)
+      assert(false);
+    else if (theModel == _dirModel)
+      assert(false);
+    
+
     MTP::GenericObject* obj;
     while(!idxList.empty())
     {
       QModelIndex temp = idxList.front();
-      /*
-      if (_view == AlbumsView)
-        temp = _albumModel->mapToSource(temp);
-      else if (_view == PlaylistView)
-        temp = _plModel->mapToSource(temp);
-      else if (_view == FileView)
-        temp = _dirModel->mapToSource(temp);
-      else
-        assert(false);
-        */
-
       obj = (MTP::GenericObject*) temp.internalPointer();
 //      QString name = _albumModel->data(0, 0, idxList.front);
 //      qDebug() << "Transfer this: " << name << "from device";
@@ -595,3 +462,61 @@ void DeviceExplorer::TransferFromDevice()
       idxList.pop_front();
     }
 }
+
+void DeviceExplorer::DeleteFromDevice()
+{
+  qDebug() << "Delete from device stub!" << endl;
+}
+
+void DeviceExplorer::SwitchFilesystemDir(const QModelIndex& tmpIdx)
+{
+  if (!_fsView || !_fsModel)
+    return;
+
+  QFileInfo switchDir = _fsModel->fileInfo(tmpIdx);
+  if (!switchDir.isDir() || !switchDir.exists())
+    return;
+  _fsView->setRootIndex (tmpIdx);
+}
+
+QModelIndexList DeviceExplorer::removeAlbumDuplicates(QModelIndexList& in_list)
+{
+  QModelIndexList ret;
+  QModelIndexList::iterator iter = in_list.begin();
+  for( ;iter != in_list.end(); iter++)
+  {
+    MTP::GenericObject* temp = (MTP::GenericObject*) (*iter).internalPointer();
+    if (temp->Type() == MtpAlbum)
+    {
+      ret.push_back(*iter);
+    }
+  }
+
+  qDebug() << "Potential problem Album count: " <<ret.size();
+  iter = in_list.begin();
+  int dupcount = 0;
+  for( ;iter != in_list.end(); iter++)
+  {
+    MTP::GenericObject* temp = (MTP::GenericObject*) (*iter).internalPointer();
+    if(temp->Type() == MtpAlbum)
+      continue;
+    QModelIndex parent = _albumModel->parent(*iter);
+    QModelIndex  potentialParent;
+    bool duplicate = false;
+    foreach (potentialParent, ret)
+    {
+      if (parent == potentialParent)
+      {
+        duplicate = true;
+        dupcount ++;
+        break;
+      }
+    }
+    if (!duplicate)
+      ret.push_back(*iter);
+  }
+  qDebug() << "Duplicates found: " << dupcount;
+  return ret;
+}
+
+

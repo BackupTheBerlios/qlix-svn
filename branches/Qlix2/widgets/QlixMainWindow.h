@@ -3,6 +3,7 @@
 
 #include <QMainWindow>
 #include <QVector>
+#include <QMenu>
 #include <QStatusBar>
 #include <QString>
 #include <QToolBar>
@@ -66,8 +67,15 @@ private:
   QAction* _albumlistAction;
   QAction* _filelistAction;
   QAction* _playlistAction;
+  QMenu* _playlistMenu;
+  QAction* _showDeviceTracks;
+  QAction* _showFileSystem;
+  QActionGroup* _deviceExplorerActions;
+  
   QAction* _manageDeviceAction;
   QAction* _preferencesAction;
+  QAction* _showQueueSeparator;
+  QAction* _showQueue;
 
   /*
   //File Actions

@@ -90,16 +90,44 @@ void QlixMainWindow::setupToolBar()
 
 void QlixMainWindow::setupActions()
 {
+  _deviceExplorerActions = new QActionGroup(NULL);
+  _deviceExplorerActions->setExclusive(true);
+
   _albumlistAction= new QAction( QIcon(":/pixmaps/albumlist.png"), QString("View Albums"), NULL); 
+  _albumlistAction->setCheckable(true);
+  _deviceExplorerActions->addAction(_albumlistAction);
+
   _playlistAction = new QAction( QIcon(":/pixmaps/playlist.png"), QString("View Playlists"), NULL); 
+  _playlistAction->setCheckable(true);
+  _deviceExplorerActions->addAction(_playlistAction);
+
+
+
   _filelistAction = new QAction( QIcon(":/pixmaps/filelist.png"), QString("View Files"), NULL); 
+  _filelistAction->setCheckable(true);
+  _deviceExplorerActions->addAction(_filelistAction);
+   
   _preferencesAction = new QAction( QIcon(":/pixmaps/preferences.png"), QString("Preferences"), NULL); 
+  _preferencesAction->setCheckable(true);
+  _deviceExplorerActions->addAction(_preferencesAction);
+
   _manageDeviceAction = new QAction( QIcon(":/pixmaps/managedevice.png"), QString("Manage Device"), NULL); 
+  _manageDeviceAction->setCheckable(true);
+  _deviceExplorerActions->addAction(_manageDeviceAction);
+
+  _showQueueSeparator = new QAction(NULL);
+  _showQueueSeparator->setSeparator(true);
+  _showQueue = new QAction( QIcon(":/pixmaps/ShowQueue.png"), QString("Show Queue"), NULL); 
+  _showQueue->setCheckable(true);
+
+
   _navBar->addAction(_albumlistAction);
   _navBar->addAction(_playlistAction);
   _navBar->addAction(_filelistAction);
   _navBar->addAction(_manageDeviceAction);
   _navBar->addAction(_preferencesAction);
+  _navBar->addAction(_showQueueSeparator);
+  _navBar->addAction(_showQueue);
 
   _navBar->setIconSize(QSize(32,32));
 
