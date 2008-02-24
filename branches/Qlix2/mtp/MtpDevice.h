@@ -17,54 +17,70 @@ using namespace std;
 class MtpDevice
 {
 public:
+//Internal functions
   MtpDevice(LIBMTP_mtpdevice_t* in_);
   ~MtpDevice();
-
   void Initialize();
+  void SetProgressFunction(LIBMTP_progressfunc_t, const void* const );
+  void ClearObjectMappings();
+  void ReleaseDevice();
 
+//basic device properties
   char const * const Name() const;
   char const * const SerialNumber() const;
   char const * const Version() const;
   char const * const SyncPartner() const;
   char const * const ModelName() const;
-
   bool BatterLevelSupport() const;
   float BatterLevel() const;
 
-  void SetProgressFunction(LIBMTP_progressfunc_t, const void* const );
+//basic actions
   bool Fetch(uint32_t, char const * const );
-  bool TransferTrack(const char*, MTP::Track*);
-  bool TransferFile(const char*, MTP::File*);
   bool UpdateSpaceInformation();
+  void FreeSpace(uint64_t*, uint64_t*);
 
-  void ClearObjectMappings();
-  count_t FileCount() const;
+//Device structures information
   count_t AlbumCount() const;
   count_t PlaylistCount() const;
 
-  MTP::File* File(count_t idx) const;
   MTP::Album* Album(count_t idx) const;
   MTP::Playlist* Playlist(count_t idx) const;
 
   count_t RootFolderCount() const;
   count_t RootFileCount() const;
-
   MTP::Folder* RootFolder(count_t idx) const;
   MTP::File* RootFile(count_t idx) const;
 
-  bool CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album);
-  void AddAlbum(MTP::Album* in_album);
-  bool AddTrackToAlbum(MTP::Track* in_track, MTP::Album* in_album);
+//Extended Album functions
+  bool NewAlbum(MTP::Track*, MTP::Album** );
+  bool RemoveAlbum(MTP::Album*);
+  bool UpdateAlbumArt(MTP::Album*, LIBMTP_filesampledata_t*);
+  void AddAlbum(MTP::Album*);
 
-  void ReleaseDevice();
-  void FreeSpace(uint64_t*, uint64_t*);
+// Track/Album
+  bool AddTrackToAlbum(MTP::Track*, MTP::Album*);
+  bool RemoveTrackFromAlbum(MTP::Track*, MTP::Album*);
 
-  bool MtpDevice::UpdateAlbumArt(MTP::Album* in_album, 
-                               LIBMTP_filesampledata_t* in_sample);
+//Track/Playlist functions
+  bool AddTrackToPlaylist(MTP::Track*, MTP::Playlist*);
+  bool RemoveTrackFromPlaylist(MTP::Track*, MTP::Playlist*);
+
+//Extended Track functions
+  bool RemoveTrack(MTP::Track*);
+  bool TransferTrack(const char*, MTP::Track*);
+
+//Extended File functions 
+  bool RemoveFile(MTP::File*);
+  bool TransferFile(const char*, MTP::File*);
+
+//Extended Folder functions
+  bool NewFolder(MTP::Folder*);
+  bool RemoveFolder(MTP::Folder*);
 
   LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample();
-  LIBMTP_mtpdevice_t* RawDevice() const;
+  //should this be deprecated?
 private:
+  LIBMTP_mtpdevice_t* RawDevice() const;
   LIBMTP_mtpdevice_t* _device;
   char* _name;
   char* _serialNumber;
@@ -82,6 +98,8 @@ private:
 
   map<uint32_t, MTP::GenericObject*> _objectMap;
   map<uint32_t, MTP::Track*> _trackMap;
+  map<uint32_t, MTP::Album*> _albumMap;
+  map<uint32_t, MTP::Playlist*> _playlistMap;
   void processErrorStack();
 
   vector <string> _errorStack;
@@ -90,25 +108,20 @@ private:
   vector <MTP::Folder*> _rootFolders;
   vector <MTP::File*> _rootFiles;
 
-  vector <MTP::File*> _files;
   vector <MTP::Track*> _tracks;
   vector <MTP::Album*> _albums;
   vector <MTP::Playlist*> _playlists;
 
-  //Directory structure functions
+  //Container structure functions
   void createObjectStructure();
-  void createFolderStructure(MTP::Folder*);
+  void createFolderStructure(MTP::Folder*, bool);
   void createFileStructure();
-  void createAlbumStructure();
-  void createPlaylistStructure();
-  
-
+  void createTrackBasedStructures();
 
   //Debug functions
   void dbgPrintSupportedFileTypes();
   void dbgPrintFolders(MTP::Folder*, count_t);
 
   //Transfer functions
-
 };
 #endif 

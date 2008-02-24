@@ -132,10 +132,14 @@ public:
   LIBMTP_album_t const* RawAlbum();
   uint32_t ChildTrackID(count_t ) const;
   void SetInitialized();
+  bool Initialized();
   Track* ChildTrack(count_t ) const;
-  void AddChildTrack(Track*, bool sanity = false);
+
+  void AddTrack(Track*);
   void AddTrackToRawAlbum(Track* in_track);
-  void RemoveChildTrack(count_t in_index, bool updateInternalStruct);
+
+  void RemoveFromRawAlbum(count_t index);
+  void RemoveTrack(count_t in_index);
 
   virtual const char* const Name() const;
   const char* const ArtistName() const;
@@ -161,7 +165,7 @@ public:
   count_t TrackCount() const;
   virtual const char* const Name() const;
 
-  void AddChildTrack(Track* );
+  void AddTrack(Track* );
   Track* ChildTrack(count_t idx) const; 
   uint32_t ChildTrackID(count_t idx) const;
   void SetInitialized();

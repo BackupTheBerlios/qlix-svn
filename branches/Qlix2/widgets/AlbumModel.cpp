@@ -5,7 +5,13 @@
  */
 AlbumModel::AlbumModel(MtpDevice* in_dev, QObject* parent) :
                        _device(in_dev)
-{ }
+{ 
+  for (int i = 0; i < _device->AlbumCount(); i++)
+  {
+//    (_device->Album(i))->SetRowIndex(i);
+    _albumList.push_back(_device->Album(i));
+  }
+}
 
 
 /**
@@ -24,12 +30,12 @@ QModelIndex AlbumModel::index(int row, int col,
   if(col < 0 || row < 0)
     return QModelIndex();
 
-  if(!parent.isValid() && row >= (int)_device->AlbumCount())
+  if(!parent.isValid() && row >= (int)_albumList.size())
     return QModelIndex();
 
   if (!parent.isValid() && col == 0)
   {
-    MTP::Album* album = _device->Album(row);
+    MTP::Album* album = _albumList[row];
     return createIndex(row, col, (void*) album);
   }
   if (!parent.isValid() && col > 0)
@@ -93,7 +99,7 @@ QModelIndex AlbumModel::parent(const QModelIndex& idx) const
 int AlbumModel::rowCount(const QModelIndex& parent) const 
 { 
   if (!parent.isValid() )
-    return _device->AlbumCount();
+    return _albumList.size();
   MTP::GenericObject* obj= (MTP::Album*)parent.internalPointer();
   if(obj->Type() == MtpTrack)
     return 0;
@@ -113,7 +119,7 @@ int AlbumModel::rowCount(const QModelIndex& parent) const
  */
 int AlbumModel::columnCount(const QModelIndex& parent ) const 
 { 
-  MTP::GenericObject* obj = (MTP::GenericObject*)parent.internalPointer();
+//  MTP::GenericObject* obj = (MTP::GenericObject*)parent.internalPointer();
 //  if (obj && obj->Type() == MtpAlbum)
 //    return 2;
   return 1;
@@ -200,20 +206,141 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
   }
   return QVariant();
 }
+/*
+bool AlbumModel::Delete(MTP::GenericObject* in_obj)
+{
+  if (in_obj->Type() != MtpTrack && in_obj->Type() != MtpAlbum)
+    return false;
+  if (in_obj->Type() == MtpAlbum)
+  {
+    MTP::Album* deletedAlbum = (MTP::Album*) in_obj;
+    assert(deletedAlbum->TrackCount() == 0);
+  }
+  else if (in_obj->Type() == MtpTrack)
+  {
+    MTP::Track* deletedTrack = (MTP::Track*) in_obj;
+    /*
+    assert(deletedTrack->ParentAlbum());
+    if (!_device->DeleteTrackFromAlbum(deletedTrack, 
+                                       deletedTrack->ParentAlbum()) )
+    {
+      qDebug() << "Could not delete track!";
+      return false;
+    }
+
+    if (!_device->DeleteTrack(deletedTrack))
+    {
+      qDebug() << "Could not delete track!"; 
+      return false;
+    }
+
+    */
+
+/*
+    MTP::Album* parent = deletedTrack->ParentAlbum();
+    assert(parent);
+
+    QModelIndex temp;
+    temp = createIndex(parent->GetRowIndex(), 0, parent);
+    qDebug() <<"Under parent: " << QString::fromUtf8(parent->Name()) << " with row:"<< parent->GetRowIndex()
+             << " Removing child: " << QString::fromUtf8(deletedTrack->Name()) << " with row: " << deletedTrack->GetRowIndex();
+    int idx = 0;
+    for (; idx < parent->TrackCount(); idx++)
+    {
+      MTP::Track* track = parent->ChildTrack(idx);
+      if(track == in_obj)
+        break;
+    }
+    qDebug() << "Album is initialized:" << parent->Initialized();
+    assert(idx < parent->TrackCount());
+    assert(idx == deletedTrack->GetRowIndex());
+    emit layoutAboutToBeChanged();
+    emit beginRemoveRows(temp, deletedTrack->GetRowIndex(),
+                         deletedTrack->GetRowIndex());
+    parent->RemoveTrack(deletedTrack->GetRowIndex());
+    emit endRemoveRows();
+    emit layoutChanged();
+  }
+}
+*/
+
+/**
+ * Adds an album to this model
+ */
+void AlbumModel::AddAlbum(MTP::Album* in_album)
+{
+  //invalid parent for root items
+  qDebug() << "Called Add Album" << endl;
+  QModelIndex parentIdx = QModelIndex();
+//  emit layoutAboutToBeChanged();
+  emit beginInsertRows(parentIdx, _albumList.size(), _albumList.size());
+  in_album->SetRowIndex(_albumList.size());
+  _albumList.push_back(in_album);
+  emit endInsertRows();
+//  emit layoutChanged();
+}
+
+void AlbumModel::AddTrack(MTP::Track* in_track)
+{
+  qDebug() << "Called Add Track" << endl;
+  MTP::Album* parentAlbum = in_track->ParentAlbum();
+  assert(parentAlbum);
+  in_track->SetRowIndex(parentAlbum->TrackCount());
+  QModelIndex parentIdx = createIndex(in_track->GetRowIndex(), 0, parentAlbum);
+  emit layoutAboutToBeChanged();
+  emit beginInsertRows(parentIdx, parentAlbum->TrackCount(), 
+                       parentAlbum->TrackCount());
+  parentAlbum->AddTrack(in_track);
+  emit endInsertRows();
+  emit layoutChanged();
+}
+
+void AlbumModel::RemoveAlbum(MTP::Album* in_album)
+{
+  //invalid parent for root items
+  qDebug() << "Called RemoveAlbum";
+  assert(in_album);
+  assert(in_album->GetRowIndex() < _albumList.size());
+  QModelIndex parentIdx = QModelIndex();
+  emit beginRemoveRows(parentIdx, _device->AlbumCount(), 
+                       _device->AlbumCount());
+  for (int i =in_album->GetRowIndex()+1; i < _albumList.size(); i++)
+    _albumList[i]->SetRowIndex(i -1);
+  _albumList.remove(in_album->GetRowIndex());
+  emit endRemoveRows();
+}
+
+void AlbumModel::RemoveTrack(MTP::Track* in_track)
+{
+  qDebug() << "Called RemoveTrack";
+  MTP::Album* parentAlbum = in_track->ParentAlbum();
+  assert(parentAlbum);
+
+  QModelIndex parentIdx = createIndex(in_track->GetRowIndex(), 0,
+                                      parentAlbum);
+  emit layoutAboutToBeChanged();
+  emit beginRemoveRows(parentIdx, in_track->GetRowIndex(), 
+                       in_track->GetRowIndex());
+  parentAlbum->RemoveTrack(in_track->GetRowIndex());
+  emit endRemoveRows();
+  emit layoutChanged();
+}
+
+
 /**
  * Adds a track to this model, it is this functions job to figure out if there
  * is an applicable Album to add, or to create an album if it doesn't exist
  * @param in_path the path to the track to add
  * @param in_track the track to add to this model
+ * @return true if adding the device track was sucessful false otherwise
  */
-void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
+/*
+bool AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
 {
-  //now we update each model..
-  qDebug() << "AlbumModel Add track called";
   if (! _device->TransferTrack(in_path.toUtf8().data(), in_track) )
   {
     qDebug() << "Transfer track failed.. ";
-    return;
+    return false;
   }
                          
   MTP::Album* trackAlbum = NULL;
@@ -232,11 +359,11 @@ void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
   if (!trackAlbum)
   {
     QModelIndex temp;
-    //first we try and add a new album to the device because one does not exist..
-    if(!_device->CreateNewAlbum(in_track, &trackAlbum))
+    //first try adding a new album to the device because one does not exist..
+    if(!_device->NewAlbum(in_track, &trackAlbum))
     {
       qDebug() << "Failed to create new album";
-      return;
+      return false;
     }
     //Try and find some cover art
     QFileInfo cover;
@@ -281,17 +408,17 @@ void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
     if (!_device->AddTrackToAlbum(in_track, trackAlbum))
     {
       qDebug() << "Failed to add track to album";
-      return;
+      return false;
     }
 
     temp = createIndex(trackAlbum->GetRowIndex(), 0, trackAlbum);
     emit layoutAboutToBeChanged();
     emit beginInsertRows(temp, trackAlbum->TrackCount(), 
                          trackAlbum->TrackCount());
-    trackAlbum->AddChildTrack(in_track, false);
+    trackAlbum->AddTrack(in_track);
     emit endInsertRows();
     emit layoutChanged();
-    return;
+    return true;
   }
   assert(trackAlbum);
 
@@ -299,56 +426,16 @@ void AlbumModel::AddTrack(const QString& in_path, MTP::Track* in_track)
   if (!_device->AddTrackToAlbum(in_track, trackAlbum))
   {
     qDebug() << "Failed to add track to album";
-    return;
+    return false;
   }
   //if thats successfull we can update the view
   QModelIndex temp = createIndex(trackAlbum->GetRowIndex(), 0, trackAlbum);
   emit layoutAboutToBeChanged();
   emit beginInsertRows(temp, trackAlbum->TrackCount(), 
                        trackAlbum->TrackCount());
-  trackAlbum->AddChildTrack(in_track, false);
+  trackAlbum->AddTrack(in_track);
   emit endInsertRows();
   emit layoutChanged();
+  return true;
 }
-
-/**
- * Adds and album to this Model
- */
-void AlbumModel::addAlbum(MTP::Album*)
-{
-}
-
-
-bool AlbumModel::discoverCoverArt(const QString& in_path, const QString& in_albumName,
-                      QFileInfo* outFile)
-{
-  QFileInfo finfo(in_path);
-  QDir search_dir;
-  if (finfo.isFile())
-    search_dir = finfo.dir();
-  else
-    search_dir = QDir(in_path);
-
-  QFileInfoList children = search_dir.entryInfoList(QDir::Files);
-  QString albumName = in_albumName + ".jpg";
-  QString albumNameAlt= in_albumName +".jpeg";
-
-  while (!children.isEmpty())
-  {
-    QFileInfo temp = children.front();
-    QString name= temp.fileName().toLower();
-    if (name == "cover.jpg" || name == "cover.jpeg" ||
-        name == albumName.toLower() ||
-        name == albumNameAlt.toLower() ||  name == "folder.jpg" ||
-        name == "folder.jpeg" || name == "album art.jpg" || 
-        name == "album art.jpeg" || name == "albumart.jpg" ||
-        name == "albumart.jpeg")
-    {
-      (*outFile) = temp;
-        //find out the default image size
-      return true;
-    }
-    children.pop_front();
-  }
-  return false;
-}
+*/

@@ -20,6 +20,9 @@ DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
 
   //Get the models
   _albumModel = _device->GetAlbumModel();
+  //Album mode connections        
+  _unsortedAlbumModel = (AlbumModel*) _albumModel->sourceModel();
+
   _dirModel= _device->GetDirModel();
   _plModel = _device->GetPlaylistModel();
   setupDeviceView();
@@ -63,6 +66,7 @@ DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
   setupMenus();
 
   _deviceView->addActions(_commonDeviceActions->actions());
+  _fsView->addActions(_commonFSActions->actions());
 }
 
 
@@ -82,9 +86,15 @@ void DeviceExplorer::ShowAlbums()
     if (_queueShown)
       _queueView->show();
   }//  _sortedModel->setSourceModel(_albumModel);
-  if (_deviceView->model() != _albumModel)
-    _deviceView->setModel(_albumModel);
-  _deviceView->setStyleSheet("QTreeView::branch:!adjoins-item, QTreeView::branch:!has-children:open{ background: none} QTreeView::branch:has-children:closed{ image: url(:/pixmaps/TreeView/branch-closed.png)} QTreeView::branch:has-children:open{ image: url(:/pixmaps/TreeView/branch-open.png)}"); 
+  if (_deviceView->model() != _unsortedAlbumModel)
+    _deviceView->setModel(_unsortedAlbumModel);
+    _deviceView->setStyleSheet("QTreeView::branch:!adjoins-item, QTreeView::branch:!has-children:open{ background: none} QTreeView::branch:has-children:closed{ image: url(:/pixmaps/TreeView/branch-closed.png)} QTreeView::branch:has-children:open{ image: url(:/pixmaps/TreeView/branch-open.png)}"); 
+/*    //To be continued
+ *    _deviceView->setStyleSheet("QTreeView::branch{ background: none} \
+                                QTreeView::branch:adjoins-item:!has-children{ image: url(:/pixmaps/TreeView/branch-end.png)} \
+                                QTreeView::branch:has-children:closed{ image: url(:/pixmaps/TreeView/branch-closed.png)} \
+                                QTreeView::branch:has-children:open{ image: url(:/pixmaps/TreeView/branch-open.png)}"); 
+*/
 }
 
 void DeviceExplorer::setupToolBars()
@@ -106,7 +116,7 @@ void DeviceExplorer::setupToolBars()
 void DeviceExplorer::setupDeviceView() 
 {
   _deviceView = new QTreeView();
-  _deviceView->setModel(_albumModel);
+  _deviceView->setModel(_unsortedAlbumModel);
   _deviceView->setSelectionBehavior(QAbstractItemView::SelectRows);
   _deviceView->setSelectionMode(QAbstractItemView::ExtendedSelection);
   _deviceView->setSortingEnabled(true);
@@ -261,7 +271,49 @@ void DeviceExplorer::setupConnections()
 
   connect(_device, SIGNAL(UpdateProgress(QString, count_t)), 
           this, SLOT(UpdateProgressBar(QString, count_t)));
-        
+
+  connect(_transferToDevice, SIGNAL(triggered(bool)),
+          this, SLOT(TransferToDevice()));
+  /*
+  connect(_device, SIGNAL(AlbumCreated(MTP::Album*)),
+          temp, SLOT(Beep()), Qt::QuuuedConnection);
+  */
+  connect(_device, SIGNAL(CreatedAlbum(MTP::Album*)),
+          _albumModel, SLOT(invalidate()), Qt::BlockingQueuedConnection);
+
+  connect(_device, SIGNAL(CreatedAlbum(MTP::Album*)),
+          _albumModel->sourceModel(), SLOT(AddAlbum(MTP::Album*)),
+          Qt::BlockingQueuedConnection);
+
+  connect(_device, SIGNAL(AddedTrackToAlbum(MTP::Track*)),
+          _albumModel->sourceModel(), SLOT(AddTrack(MTP::Track*)),
+          Qt::BlockingQueuedConnection);
+  connect(_device, SIGNAL(AddedTrackToAlbum(MTP::Track*)),
+          _albumModel, SLOT(invalidate()),
+          Qt::BlockingQueuedConnection);
+
+  connect(_device, SIGNAL(RemovedTrack(MTP::Track*)),
+          _albumModel, SLOT(invalidate()), Qt::BlockingQueuedConnection);
+
+  connect(_device, SIGNAL(RemovedTrack(MTP::Track*)),
+          _albumModel->sourceModel(), SLOT(RemoveTrack(MTP::Track*)),
+          Qt::BlockingQueuedConnection);
+
+  connect(_device, SIGNAL(RemovedAlbum(MTP::Album*)),
+          _albumModel->sourceModel(), SLOT(RemoveAlbum(MTP::Album*)),
+          Qt::BlockingQueuedConnection);
+
+  connect(_device, SIGNAL(RemovedAlbum(MTP::Album*)),
+          _albumModel, SLOT(invalidate()),
+          Qt::BlockingQueuedConnection);
+
+}
+
+void DeviceExplorer::Beep(MTP::Track* in_track)
+{
+  qDebug() << "WTF from device Explorer";
+  ((AlbumModel*)_albumModel->sourceModel())->AddTrack(in_track);
+  _albumModel->invalidate();
 }
 
 void DeviceExplorer::updateDeviceSpace()
@@ -332,6 +384,7 @@ void DeviceExplorer::updateDeviceSpace()
 void DeviceExplorer::setupCommonTools()
 {
   _commonDeviceActions = new QActionGroup(this);
+  _commonFSActions = new QActionGroup(this);
   _transferFromDevice = new QAction( 
     QIcon(":/pixmaps/ActionBar/TransferFromDevice.png"), 
     QString("Transfer From Device"), NULL); 
@@ -359,6 +412,12 @@ void DeviceExplorer::setupCommonTools()
     QString("Delete"), NULL); 
 
   _commonDeviceActions->addAction(_delete);
+
+//FS actions
+  _transferToDevice = new QAction(
+                          QIcon(":/pixmaps/ActionBar/TransferFile.png"),
+                          QString("Transfer"), NULL);
+  _commonFSActions->addAction(_transferToDevice);
 }
 
 
@@ -383,7 +442,7 @@ void DeviceExplorer::setupMenus()
   //setContextMenuPolicy(Qt::ActionsContextMenu);
 }
 
-void DeviceExplorer::TransferTrackToDevice()
+void DeviceExplorer::TransferToDevice()
 {
   QList<QString> fileList;
   QItemSelectionModel* selectedModel = _fsView->selectionModel();
@@ -414,55 +473,70 @@ void DeviceExplorer::TransferTrackToDevice()
 
 void DeviceExplorer::TransferFromDevice()
 {
-    qDebug() << "called Transfer from device";
-    QModelIndex idx = _fsView->rootIndex();
+  qDebug() << "called Transfer from device";
+  QModelIndex idx = _fsView->rootIndex();
 
-    if (!idx.isValid())
-    {
-      qDebug() << "Current directory is invalid" ;
-      return;
-    }
+  if (!idx.isValid())
+  {
+    qDebug() << "Current directory is invalid" ;
+    return;
+  }
 
-    QFileInfo info = _fsModel->fileInfo(idx); 
-    assert(info.isDir());
-    if (!info.isWritable())
-    {
-      qDebug() << "Current directory is not writable:"  << info.canonicalFilePath();
-      return;
-    }
+  QFileInfo info = _fsModel->fileInfo(idx); 
+  assert(info.isDir());
+  if (!info.isWritable())
+  {
+    qDebug() << "Current directory is not writable:"  << info.canonicalFilePath();
+    return;
+  }
 
-    QString transferPath = info.canonicalFilePath();
-    QItemSelectionModel* selectedModel = _deviceView->selectionModel();
-    QModelIndexList dupList= selectedModel->selectedRows();
-    QModelIndexList idxList;
-    if (dupList.empty())
-    {
-      qDebug() << "nothing selected!";
-      return;
-    }
+  QString transferPath = info.canonicalFilePath();
+  QItemSelectionModel* selectedModel = _deviceView->selectionModel();
+  QModelIndexList idxList= selectedModel->selectedRows();
+  if (idxList.empty())
+  {
+    qDebug() << "nothing selected!";
+    return;
+  }
 
-    QAbstractItemModel* theModel = _deviceView->model();
-    assert(theModel == _albumModel || theModel == _plModel ||
-           theModel == _dirModel);
-    idxList = removeIndexDuplicates(dupList, (QSortFilterProxyModel*)theModel);
+  QAbstractItemModel* theModel = _deviceView->model();
+  assert(theModel == _albumModel || theModel == _plModel ||
+         theModel == _dirModel);
+  idxList = removeIndexDuplicates(idxList, (QSortFilterProxyModel*)theModel);
 
-    MTP::GenericObject* obj;
-    while(!idxList.empty())
-    {
-      QModelIndex temp = idxList.front();
-//      temp = _dirModel->mapToSource(temp);
-      obj = (MTP::GenericObject*) temp.internalPointer();
-      assert(temp.isValid());
-//      QString name = _albumModel->data(0, 0, idxList.front);
-//      qDebug() << "Transfer this: " << name << "from device";
-      _device->TransferFrom(obj, transferPath);
-      idxList.pop_front();
-    }
+  MTP::GenericObject* obj;
+
+  QModelIndex temp;
+  foreach(temp, idxList)
+  {
+    obj = (MTP::GenericObject*) temp.internalPointer();
+    assert(temp.isValid());
+    _device->TransferFrom(obj, transferPath);
+  }
 }
 
 void DeviceExplorer::DeleteFromDevice()
 {
-  qDebug() << "Delete from device stub!" << endl;
+  qDebug() << "Deleting form device..";
+  QItemSelectionModel* selectedModel = _deviceView->selectionModel();
+  QModelIndexList idxList = selectedModel->selectedRows();
+  if (idxList.empty())
+  {
+    qDebug() << "nothing selected!";
+    return;
+  }
+  QAbstractItemModel* theModel = _deviceView->model();
+  assert(theModel == _albumModel || theModel == _plModel ||
+         theModel == _dirModel || theModel == _unsortedAlbumModel);
+  idxList = removeIndexDuplicates(idxList, (QSortFilterProxyModel*)theModel);
+
+  QModelIndex temp;
+  foreach(temp, idxList)
+  {
+    MTP::GenericObject* obj = (MTP::GenericObject*) temp.internalPointer();
+    assert(temp.isValid());
+    _device->DeleteObject(obj);
+  }
 }
 
 void DeviceExplorer::SwitchFilesystemDir(const QModelIndex& tmpIdx)
@@ -476,13 +550,6 @@ void DeviceExplorer::SwitchFilesystemDir(const QModelIndex& tmpIdx)
   _fsView->setRootIndex (tmpIdx);
 }
 
-/**
- * This function removes duplicate selection implied by selecting a parent 
- * widgets and one of its children. The parent widget's selection implies all
- * widgets under it are selected, thus it gets precedence when transfering 
- * and deletng.
- * @param in_list the list of indicies selected
- */
 /*
 QModelIndexList DeviceExplorer::removeAlbumDuplicates
                 (const QModelIndexList& in_list)
@@ -526,9 +593,17 @@ QModelIndexList DeviceExplorer::removeAlbumDuplicates
 }
 */
 
+/**
+ * This function removes duplicate selection implied by selecting a parent 
+ * widget and one or many of its children. The parent widget's selection 
+ * implies all widgets under it are selected, thus it gets precedence when 
+ * transfering and deleting files/tracks/folders.
+ * @param in_list the list of indicies selected
+ * @param in_model the model that in_list applies to
+ */
 QModelIndexList DeviceExplorer::removeIndexDuplicates(
                                 const QModelIndexList& in_list, 
-                                const QSortFilterProxyModel* in_model)
+                                const QAbstractItemModel* in_model)
 {
   qDebug() << "Called removeFileFolderDuplicates";
   QModelIndexList ret;
@@ -557,7 +632,17 @@ QModelIndexList DeviceExplorer::removeIndexDuplicates(
       parent = in_model->parent(parent);
     }
     if (!found)
-      ret.push_back(in_model->mapToSource(first));
+    {
+      if (in_model != _unsortedAlbumModel)
+      {
+        QModelIndex mapped = ((QSortFilterProxyModel*)in_model)->mapToSource(first);
+        ret.push_back(mapped);
+        MTP::GenericObject* tempObj = (MTP::GenericObject*) mapped.internalPointer();
+        assert(tempObj->Type() == MtpTrack ||  tempObj->Type() == MtpFile || tempObj->Type() == MtpAlbum);
+      }
+      else
+        ret.push_back(first);
+    }
   }
   qDebug() << "Found :" << dupCount << " duplicates" << endl;
   qDebug() << "ret size:" <<ret.size();

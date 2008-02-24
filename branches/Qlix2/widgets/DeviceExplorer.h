@@ -50,11 +50,12 @@ public slots:
   void ShowDeviceManager();
   void ShowQueue(bool);
   void UpdateProgressBar(const QString&, count_t percent);
+  void Beep(MTP::Track* in_track);
 
 signals:
 
 private slots:
-  void TransferTrackToDevice();
+  void TransferToDevice();
   void TransferFromDevice();
   void DeleteFromDevice();
   void SwitchFilesystemDir(const QModelIndex&);
@@ -93,7 +94,7 @@ private:
 
 //  QModelIndexList removeAlbumDuplicates(const QModelIndexList&);
   QModelIndexList removeIndexDuplicates(const QModelIndexList&,
-                                        const QSortFilterProxyModel*);
+                                        const QAbstractItemModel*);
   QGridLayout* _layout; 
   ViewPort _view;
 
@@ -110,6 +111,7 @@ private:
 
   QTreeView* _deviceView;
   QSortFilterProxyModel* _albumModel;
+  AlbumModel* _unsortedAlbumModel;
   QSortFilterProxyModel* _plModel;
   QSortFilterProxyModel* _dirModel;
 
@@ -129,9 +131,7 @@ private:
   //Progress bar for space usage and transfers
   QProgressBar* _progressBar;
 
-  //Album Actions
-  QAction* _transferTrackToDevice;
-  QVector <QAction*> _albumActionList;
+
 
   //Playlist Actions
   QAction* _newPlaylist;
@@ -142,12 +142,15 @@ private:
   QAction* _deleteFromPlaylist;
   QVector <QAction*> _playlistActionList;
 
-  //File Actions
-  QAction* _newFolder;
-  QVector <QAction*> _fileActionList;
-
+  
+  //Queue Actions
   QAction* _viewQueue;
   QAction* _hideQueue;
+
+  //common to all fs views
+  QActionGroup* _commonFSActions;
+  QAction* _transferToDevice;
+
   //common to all objects
   QActionGroup* _commonDeviceActions;
   QAction* _transferFromDevice;
@@ -155,5 +158,10 @@ private:
   QAction* _sync;
   QAction* _deleteSeperator;
   QAction* _delete;
+
+  //File Actions
+  QAction* _newFolder;
+  QVector <QAction*> _fileActionList;
+
 };
 

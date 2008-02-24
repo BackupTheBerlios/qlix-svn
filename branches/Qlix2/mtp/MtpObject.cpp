@@ -199,6 +199,7 @@ Folder::Folder(LIBMTP_folder_t* in_folder, Folder* in_parent) :
                GenericObject (MtpFolder, in_folder->folder_id)
 {
   assert(in_folder);
+  cout << "Creating new folder " << in_folder->name << " with id:" << ID() << endl;
   _rawFolder = in_folder;
   _parent = in_parent;
 }
@@ -309,7 +310,6 @@ Album::Album(LIBMTP_album_t* in_album,
              GenericObject (MtpAlbum, in_album->album_id),
              _sample(in_sample)
 {
-  cout << "Sample of type: " << _sample.filetype << endl;
   assert(in_album);
   _rawAlbum = in_album;
   _initialized = false;
@@ -338,17 +338,13 @@ const LIBMTP_filesampledata_t& Album::SampleData() const
  *  If the gui is adding a track, you must first add the track to the raw
  *  folder before adding it to the wrapper
  * @param in_track the track to add as a subtrack to this folder
- * @param updateInternalStruct condition whether or not to update the
- *        structure on the device
  */
-void Album::AddChildTrack(Track* in_track, bool sanity) 
+void Album::AddTrack(Track* in_track) 
 {
   in_track->SetParentAlbum(this);
   //row index is not _childTracks.size() +1 as it is zero based..
   in_track->SetRowIndex( _childTracks.size());
   _childTracks.push_back(in_track);
-  if(sanity)
-    assert(_childTracks.size() == _rawAlbum->no_tracks);
 }
 
 /** Adds the passed track as a subtrack to the raw album of this object only
@@ -384,41 +380,66 @@ LIBMTP_album_t const* Album::RawAlbum()
  * @param updateInternalStruct condition whether or not to update the
  *        structure on the device
  */
-void Album::RemoveChildTrack(count_t in_index, bool updateInternalStruct) 
+void Album::RemoveTrack(count_t in_index)
 {
   if (in_index > _childTracks.size())
     return;
+  cout << "before removal album size: " << _childTracks.size() << endl;
   Track* deletedTrack = _childTracks[in_index];
   vector<Track*>::iterator iter = _childTracks.begin();
   vector<Track*>::iterator backup_iter;
+  int i =0;
   while (*iter !=  deletedTrack) 
   { 
+    i++;
     iter++; 
     assert(iter != _childTracks.end());
   }
+  cout << "Iterator found index at: " << i << " vs " << in_index << endl;
 
-  backup_iter = iter;
+  backup_iter = iter +1;
   //Ensure that objects below this object have the correct index
   while (backup_iter != _childTracks.end())
   {
-    (*iter)->SetRowIndex( (*iter)->GetRowIndex() -1);
+    Track* currentTrack = (*backup_iter);
+    int prevIdx =  (*backup_iter)->GetRowIndex( );
+    assert(prevIdx != 0);
+    (*backup_iter)->SetRowIndex( (*backup_iter)->GetRowIndex() -1);
+    cout << "Previous idx: " << prevIdx << " new idx: " << (*backup_iter)->GetRowIndex() << endl;
+    assert(currentTrack->GetRowIndex() >= 0);
+    backup_iter++;
   }
+  assert(*iter == deletedTrack); 
+//  delete deletedTrack;
   _childTracks.erase(iter);
-
-  if (updateInternalStruct)
-  {
-    count_t trackCount = _rawAlbum->no_tracks;
-    count_t* tracks = new count_t[trackCount-1];
-    for (count_t i =0; i < trackCount; i++)
-      tracks[i] = _rawAlbum->tracks[i];
-
-    _rawAlbum->no_tracks = trackCount -1;
-    delete [] _rawAlbum->tracks;
-    _rawAlbum->tracks = tracks;
-  }
+  cout << "after removal album size: " << TrackCount() << endl;
+/*
   iter = _childTracks.end();
   iter--;
-  assert( (*iter)->GetRowIndex() == _childTracks.size());
+
+  Track* lastTrack = (*iter);
+  */
+//  assert( lastTrack->GetRowIndex() == _childTracks.size()-1);
+}
+
+void Album::RemoveFromRawAlbum(count_t index)
+{
+    count_t trackCount = _rawAlbum->no_tracks;
+    count_t* tracks = NULL;
+    if (trackCount-1 > 0)
+      tracks = new count_t[trackCount-1];
+    for (count_t i =0; i < index; i++)
+    {
+      tracks[i] = _rawAlbum->tracks[i];
+    }
+    for (count_t i = index+1; i < trackCount; i++)
+    {
+      tracks[i-1] = _rawAlbum->tracks[i];
+    }
+
+    _rawAlbum->no_tracks = trackCount -1;
+//    delete [] _rawAlbum->tracks;
+    _rawAlbum->tracks = tracks;
 }
 
 /** Retreives the name of the wrapped Album
@@ -480,6 +501,7 @@ Track* Album::ChildTrack(count_t idx) const
  * LIBMTP data structure as it might become stale.
  */
 void Album::SetInitialized() { _initialized = true; }
+bool Album::Initialized() { return _initialized; }
 
 /** 
  * @return the visual row index for this album
@@ -518,7 +540,7 @@ char const * const Playlist::Name() const
 /** Adds a track to the list of child tracks
  * @param in_track the pointer to the child track to add
  */
-void Playlist::AddChildTrack(Track* in_track) 
+void Playlist::AddTrack(Track* in_track) 
 {
   _childTracks.push_back(in_track);
   in_track->SetParentPlaylist(this);

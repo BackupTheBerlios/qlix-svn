@@ -67,9 +67,6 @@ void MtpDevice::ReleaseDevice()
   }
 }
 
-
-
-
 /**
  * Initializes the MtpDevice and creates an internal tree structure for all
  * MTP objects
@@ -115,12 +112,6 @@ void MtpDevice::Initialize()
   createObjectStructure();
   UpdateSpaceInformation();
 }
-
-/**
- * Returns the number of files on the device
- */
-count_t MtpDevice::FileCount() const
-{ return _files.size(); }
 
 void MtpDevice::FreeSpace(uint64_t* total, uint64_t* free)
 {
@@ -175,18 +166,6 @@ count_t MtpDevice::AlbumCount() const
 count_t MtpDevice::PlaylistCount() const
 { return _playlists.size(); }
 
-
-
-/**
- * Returns the File at the given index if it exists
- * @return the File at the given index or NULL if it is out of bounds
- */
-MTP::File* MtpDevice::File(count_t idx) const
-{ 
-  if (idx > _files.size() )
-    return NULL;
-  return _files[idx];
-}
 
 /**
  * Returns the Album at the given index if it exists
@@ -305,6 +284,7 @@ void MtpDevice::processErrorStack()
     string s(es->error_text);
     _errorStack.push_back(s);
     es = es->next;
+    cout << "Qlix MTP ERROR: " << s << endl;
   }
 
   LIBMTP_Clear_Errorstack(_device);
@@ -329,105 +309,10 @@ void MtpDevice::createObjectStructure()
 {
   if (!_device)
     return;
-  LIBMTP_file_t* fileRoot = LIBMTP_Get_Filelisting(_device);
-  while (fileRoot)
-  {
-    //we should be careful to check the map's size before we check for 
-    //crosslinks
-    count_t size = _objectMap.size();
-    MTP::File* currentFile = new MTP::File(fileRoot);
-    _files.push_back(currentFile);
-    MTP::GenericObject* previous = _objectMap[currentFile->ID()];
-    _objectMap[currentFile->ID()] = currentFile; 
-
-    //crosslink check
-    if(_objectMap.size() != size+1)
-    {
-      assert(previous);
-      _crossLinked.push_back(previous);
-      _crossLinked.push_back( currentFile);
-    }
-    fileRoot = fileRoot->next;
-  }
-
-  LIBMTP_track_t* trackRoot = LIBMTP_Get_Tracklisting(_device);
-  while (trackRoot)
-  {
-    count_t size = _objectMap.size();
-    MTP::Track* currentTrack = new MTP::Track(trackRoot);
-    _tracks.push_back(currentTrack);
-    MTP::GenericObject* previous = _objectMap[currentTrack->ID()];
-    _objectMap[currentTrack->ID()] = currentTrack; 
-
-    //crosslink check
-    if(_objectMap.size() != size+1)
-    {
-      assert(previous);
-      _crossLinked.push_back(previous);
-      _crossLinked.push_back( currentTrack );
-    }
-    trackRoot = trackRoot->next;
-  }
-
-  LIBMTP_album_t* albumRoot= LIBMTP_Get_Album_List(_device);
-  count_t crossLinkCount = 0;
-  while (albumRoot)
-  {
-    LIBMTP_filesampledata_t temp;
-    LIBMTP_Get_Representative_Sample(_device, albumRoot->album_id, &temp); 
-//    cout << "Discovred a sample of type: " << temp.filetype << endl;
-//    cout << "Discovred a sample of height: " << temp.height << " of width: "<< temp.width << " size: " << temp.size << endl;
-
-    count_t size = _objectMap.size();
-
-    MTP::Album* currentAlbum = new MTP::Album(albumRoot, temp);
-    currentAlbum->SetRowIndex( _albums.size());
-    _albums.push_back(currentAlbum);
-
-    MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
-    _objectMap[currentAlbum->ID()] = currentAlbum; 
-
-    //crosslink check
-    if(_objectMap.size() != size+1)
-    {
-      assert(previous);
-      _crossLinked.push_back(previous);
-      _crossLinked.push_back( currentAlbum );
-      crossLinkCount++;
-    }
-
-    albumRoot = albumRoot->next;
-  }
-#ifdef QLIX_DEBUG
-  cerr << "Album cross link count: " << crossLinkCount << endl;
-#endif
-
-  LIBMTP_playlist_t* playlistRoot = LIBMTP_Get_Playlist_List(_device);
-  crossLinkCount = 0;
-  while(playlistRoot)
-  {
-    count_t size = _objectMap.size();
-
-    MTP::Playlist* currentPlaylist = new MTP::Playlist(playlistRoot);
-    _playlists.push_back(currentPlaylist);
-    currentPlaylist->SetRowIndex(_playlists.size());
-
-    MTP::GenericObject* previous = _objectMap[currentPlaylist->ID()];
-    _objectMap[currentPlaylist->ID()] = currentPlaylist; 
-    if (_objectMap.size() != size+1)
-    {
-      assert(previous);
-      _crossLinked.push_back(previous);
-      _crossLinked.push_back(currentPlaylist);
-      crossLinkCount++;
-    }
-    playlistRoot = playlistRoot->next;
-  }
-  createFolderStructure(NULL);
+  //create container structures first..
+  createFolderStructure(NULL, true);
   createFileStructure();
-  createAlbumStructure();
-  createPlaylistStructure();
-  cout << "Crosslinked entries: " << _crossLinked.size() << endl;
+  createTrackBasedStructures();
 
 #ifdef QLIX_DEBUG
   //dbgPrintSupportedFileTypes();
@@ -443,17 +328,27 @@ LIBMTP_mtpdevice_t* MtpDevice::RawDevice() const
 {
   return _device;
 }
+/**
+ * This function adds an album to the virtual album list
+ * It is mostly supposed to be used by async calls from the GUI when it is 
+ * ready for such a fundamental change to occur in the structure.
+ */
+void MtpDevice::AddAlbum(MTP::Album* in)
+{
+  in->SetRowIndex(_albums.size());
+  _albums.push_back(in);
+}
 
 /**
  * Recursively builds the directory structure
  */
-void MtpDevice::createFolderStructure(MTP::Folder* in_root)
+void MtpDevice::createFolderStructure(MTP::Folder* in_root, bool firstRun)
 {
   if (!_device)
     return;
   vector<MTP::Folder*> curLevelFolders;
   LIBMTP_folder_t* folderRoot;
-  if (!in_root)
+  if (!in_root && firstRun)
     folderRoot= LIBMTP_Get_Folder_List(_device);
   else
     folderRoot = in_root->RawFolder()->child;
@@ -484,6 +379,7 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root)
     //previous is used if there is a crosslinked entry
     MTP::GenericObject* previous = _objectMap[temp->ID()];
     _objectMap[temp->ID()] = temp; 
+    cout << "Added: " << temp->ID() << " to the map with name: " << temp->Name() << endl;
 
     //crosslink check
     if(_objectMap.size() != size+1)
@@ -495,7 +391,7 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root)
     folderRoot = folderRoot->sibling;
   }
   for (count_t i =0; i < curLevelFolders.size(); i++)
-      createFolderStructure(curLevelFolders[i]);
+      createFolderStructure(curLevelFolders[i], false);
 }
 
 /**
@@ -567,99 +463,216 @@ void MtpDevice::ClearObjectMappings()
   _crossLinked.clear();
   _rootFolders.clear();
   _rootFiles.clear();
-  _files.clear();
   _tracks.clear();
   _albums.clear();
   _playlists.clear();
 }
 
 /**
- * Iterates over all the files and adds them to their parent folder
+ * Get the file list and iterate over and add them to their parent folder
+ * This function must be called after createFolderStructure
  */
 void MtpDevice::createFileStructure()
 {
-  MTP::GenericObject* obj;
   MTP::Folder* parentFolder;
-  for (count_t i =0; i < _files.size(); i++)
+
+  LIBMTP_file_t* fileRoot = LIBMTP_Get_Filelisting(_device);
+  while (fileRoot)
   {
-    MTP::File* temp = _files[i];
+    MTP::File* currentFile = new MTP::File(fileRoot);
     //sanity check
     count_t size = _objectMap.size();
-    if (temp->ParentID() == 0)
+    //take care to check the map's size before we check for crosslinks
+    MTP::GenericObject* previous = _objectMap[currentFile->ID()];
+    _objectMap[currentFile->ID()] = currentFile; 
+
+    //crosslink check
+    if(_objectMap.size() != size+1)
     {
-      _rootFiles.push_back(temp);
+      cerr << "Serious file crosslink.. aborting please file a bug report at: "
+      << " caffein@gmail.com" << endl;
+      cerr << " size: " << size << " new size:" << _objectMap.size();
+      assert(false);
+    }
+    size = _objectMap.size();
+
+    if (currentFile->ParentID() == 0)
+    {
+      _rootFiles.push_back(currentFile);
+      fileRoot = fileRoot->next;
       continue;
     }
-    obj =  _objectMap[temp->ParentID()];
-    assert(_objectMap.size() == size);
-    if (obj->Type() != MtpFolder)
+
+    MTP::Folder* parentFolder = (MTP::Folder*) _objectMap[currentFile->ParentID()];
+    if(_objectMap.size() != size)
     {
-      cerr << "Serious crosslink problem: could not get parent folder: " << temp->ParentID() << endl;
-      continue;
+      cerr << "Database corruption parent for file:" << currentFile->ID()
+           << " which has ID: " << currentFile->ParentID() 
+           << " was not discovered" << endl;
+      assert(false);
     }
-    parentFolder = (MTP::Folder*) obj;
-    parentFolder->AddChildFile(temp);
-    temp->SetParent(parentFolder);
-    cout << "Set " << parentFolder->Name() << " as parent of " << temp->Name() << endl;
+
+    if (parentFolder->Type() != MtpFolder)
+    {
+      cerr << "Database corruption while retreiving parent for file:" 
+           << currentFile->ID() << " which has ID: " 
+           << currentFile->ParentID() << endl;
+      assert(false);
+    }
+
+    parentFolder->AddChildFile(currentFile);
+    currentFile->SetParent(parentFolder);
+    /*
+    cout << "Set " << parentFolder->Name() << " as parent of "
+         << currentFile->Name() << endl;
+         */
+    //move on to the next file
+    fileRoot = fileRoot->next;
   }
 }
 
 /**
- * Iterates over all the Albums and their tracks Each track is looked up in 
- * the object map and added to the Album's vector  of tracks
+ * Retreives the album and track list then Iterates over all the Albums and
+ * their tracks. Each track is looked up in the object map and added to the 
+ * Album's list of child tracks
  */
-void MtpDevice::createAlbumStructure()
+void MtpDevice::createTrackBasedStructures()
 {
-  MTP::GenericObject* obj;
-  MTP::Album* parentAlbum;
-  for (count_t i =0; i < _albums.size(); i++)
+  LIBMTP_album_t* albumRoot= LIBMTP_Get_Album_List(_device);
+  LIBMTP_track_t* trackRoot = LIBMTP_Get_Tracklisting(_device);
+  LIBMTP_playlist_t* playlistRoot = LIBMTP_Get_Playlist_List(_device);
+
+  //create the wrapper tracks
+  while (trackRoot)
   {
-    parentAlbum = _albums[i];
-    for (count_t j = 0; j < parentAlbum->TrackCount(); j++)
+    count_t size = _objectMap.size();
+    MTP::Track* currentTrack = new MTP::Track(trackRoot);
+    _tracks.push_back(currentTrack);
+//    cout << "Inserting track with ID: " << currentTrack->ID() << endl;
+    MTP::GenericObject* previousFile = _objectMap[currentTrack->ID()];
+    if(previousFile->ID() != currentTrack->ID())
     {
-      uint32_t track_id = parentAlbum->ChildTrackID(j);
-      //sanity check
-      count_t size = _objectMap.size();
-      obj = _objectMap[track_id];
-//      assert(_objectMap.size() == size+1); //because its crosslinked with tracks i guess
-      if (obj->Type() != MtpTrack)
-      {
-        cerr << "Current track: " << track_id << "is crosslinked" << endl;
-        continue;
-      }
-      parentAlbum->AddChildTrack((MTP::Track*) obj);
+      cerr << "Qlix internal database corruption! please report this to: " <<
+              "caffein@gmail.com as this is a fairly serious error!" << endl;
+      assert(false);
     }
-    parentAlbum->SetInitialized();
+    if (previousFile->Type() != MtpFile)
+    {
+      cerr << "Track crosslinked with a non file object! please report this to: " 
+           << "caffein@gmail.com"<< endl;
+      assert(false);
+    }
+    MTP::GenericObject* previousTrack = _trackMap[currentTrack->ID()];
+    if (previousTrack)
+    {
+      cerr << "Track crosslinked with another track! please report this to " 
+           <<" caffein@gmail.com"<< endl;
+      assert(false);
+    }
+    _trackMap[currentTrack->ID()] = currentTrack;
+    trackRoot = trackRoot->next;
   }
-}
 
-
-/**
- * Iterates over all the Playlists and their tracks. Each track is looked up in 
- * the object map and added to the Playlist's vector of tracks
- */
-void MtpDevice::createPlaylistStructure()
-{
-  MTP::GenericObject* obj;
-  MTP::Playlist* parentPlaylist;
-  for (count_t i =0; i < _playlists.size(); i++)
+  //create the wrapper albums and add its child tracks 
+  while (albumRoot)
   {
-    parentPlaylist = _playlists[i];
-    for (count_t j = 0; j < parentPlaylist->TrackCount(); j++)
+    LIBMTP_filesampledata_t temp;
+    LIBMTP_Get_Representative_Sample(_device, albumRoot->album_id, &temp); 
+#ifdef QLIX_DEBUG
+    cout << "Discovred a sample of type: " << temp.filetype 
+         << " with height: " << temp.height << " and width: "
+         << temp.width << " with size: " << temp.size << endl;
+#endif
+
+    count_t size = _objectMap.size();
+
+    MTP::Album* currentAlbum = new MTP::Album(albumRoot, temp);
+    currentAlbum->SetRowIndex( _albums.size());
+    _albums.push_back(currentAlbum);
+
+    MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
+
+    //crosslink check with file
+    if(_objectMap.size() != size || previous == NULL)
     {
-      uint32_t track_id = parentPlaylist->ChildTrackID(j);
+       cerr << "ALbum not crosslinked with file as expected!" << 
+               " Please report this to caffein@gmail.com" << endl;
+      assert(false);
+    }
+
+    //crosslink check with albums
+    size = _albumMap.size();
+    MTP::Album* previousAlbum = _albumMap[currentAlbum->ID()]; 
+    if (_albumMap.size() != size+1)
+    {
+      cerr << "Album crosslinked with another album! Please report this to" 
+           << "caffein@gmail.com" << endl;
+      assert(false);
+    }
+    _albumMap[currentAlbum->ID()] = currentAlbum; 
+
+
+    //now iterate over the albums's children..
+    for (count_t j = 0; j < currentAlbum->TrackCount(); j++)
+    {
+      uint32_t track_id = currentAlbum->ChildTrackID(j);
       //sanity check
-      count_t size = _objectMap.size();
-      obj = _objectMap[track_id];
-      assert(_objectMap.size() == size);
-      if (obj->Type() != MtpTrack)
+      count_t size = _trackMap.size();
+      MTP::Track* track = _trackMap[track_id];
+      if(_trackMap.size() != size || track->Type() != MtpTrack)
       {
-        cerr << "Current track: " << track_id << "is crosslinked" << endl;
+        cerr << "Current track: " << track_id << " does not exist.. skipping"
+        << " this usually happens when MTP clients do not remove files " 
+        << " correctly" << endl;
+
+        //report this to caffein@gmail.com" << endl;
+        //assert(false);
         continue;
       }
-      parentPlaylist->AddChildTrack( (MTP::Track*) obj );
+      currentAlbum->AddTrack(track);
     }
-    parentPlaylist->SetInitialized();
+
+    currentAlbum->SetInitialized();
+    albumRoot = albumRoot->next;
+  }
+
+  while(playlistRoot)
+  {
+    count_t size = _objectMap.size();
+
+    MTP::Playlist* currentPlaylist = new MTP::Playlist(playlistRoot);
+    _playlists.push_back(currentPlaylist);
+    currentPlaylist->SetRowIndex(_playlists.size());
+
+    MTP::GenericObject* previous = _objectMap[currentPlaylist->ID()];
+    _objectMap[currentPlaylist->ID()] = currentPlaylist; 
+    if (_objectMap.size() != size+1)
+    {
+      cerr << "Playlist crosslinked! please report this to\ caffein@gmail.com"
+            << endl;
+      assert(false);
+    }
+    //now iterate over the playlist's children..
+    for (count_t j = 0; j < currentPlaylist->TrackCount(); j++)
+    {
+      uint32_t track_id = currentPlaylist->ChildTrackID(j);
+
+      //sanity check
+      count_t size = _trackMap.size();
+      MTP::Track* track = _trackMap[track_id];
+
+      assert(_trackMap.size() == size);
+      if (track->Type() != MtpTrack)
+      {
+        cerr << "Current track: " << track_id << "is crosslinked please \
+        report this to caffein@gmail.com" << endl;
+        assert(false);
+      }
+      currentPlaylist->AddTrack( (MTP::Track*) track );
+    }
+    currentPlaylist->SetInitialized();
+
+    playlistRoot = playlistRoot->next;
   }
 }
 
@@ -733,7 +746,7 @@ bool MtpDevice::UpdateSpaceInformation()
  *        this value is NULL
  * @return true if successfull false otherwise
  */
-bool MtpDevice::CreateNewAlbum(MTP::Track* in_track, MTP::Album** out_album)
+bool MtpDevice::NewAlbum(MTP::Track* in_track, MTP::Album** out_album)
 {
   LIBMTP_album_t* newAlbum = LIBMTP_new_album_t();
   newAlbum->name = strdup(in_track->AlbumName());
@@ -803,15 +816,6 @@ LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
 }
 
 /**
- * This function adds an album to the Album list
- */
-void MtpDevice::AddAlbum(MTP::Album* in_album)
-{
-  in_album->SetRowIndex(_albums.size());
-  _albums.push_back(in_album);
-}
-
-/**
  * This function adds the passed track to the album on the device by first
  * adding it to the raw track, syncing to the device and then adds the track
  * to the wrapper track. 
@@ -825,6 +829,49 @@ bool MtpDevice::AddTrackToAlbum(MTP::Track* in_track, MTP::Album* in_album)
   in_album->AddTrackToRawAlbum(in_track);
 #ifndef SIMULATE_TRANSFERS
   int ret = LIBMTP_Update_Album(_device, in_album->RawAlbum());
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+#endif
+  return true;
+}
+
+bool MtpDevice::RemoveTrack(MTP::Track* in_track)
+{
+  assert(in_track);
+  MTP::Album* parentAlbum = in_track->ParentAlbum();
+  parentAlbum->SetInitialized();
+
+  parentAlbum->RemoveFromRawAlbum(in_track->GetRowIndex());
+
+#ifndef SIMULATE_TRANSFERS
+  int ret = LIBMTP_Update_Album(_device, parentAlbum->RawAlbum());
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+
+  ret = LIBMTP_Delete_Object(_device, in_track->ID());
+  if (ret != 0)
+  {
+    processErrorStack();
+    return false;
+  }
+#endif
+  return true;
+}
+
+bool MtpDevice::RemoveAlbum(MTP::Album* in_album)
+{
+  assert(in_album);
+  assert(in_album->GetRowIndex() >= 0);
+//  parentAlbum->RemoveFromRawAlbum(in_track->GetRowIndex());
+
+#ifndef SIMULATE_TRANSFERS
+  bool ret = LIBMTP_Delete_Object(_device, in_album->ID());
   if (ret != 0)
   {
     processErrorStack();

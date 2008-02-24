@@ -2,6 +2,7 @@
 #define __QMTPDEVICE__
 #include <QThread>
 #include <QIcon>
+#include <QApplication>
 #include <QMutex>
 #include <QMutexLocker>
 #include <QWaitCondition>
@@ -43,6 +44,7 @@ public:
 
   void TransferTrack(QString filepath);
   void TransferFrom(MTP::GenericObject*, QString );
+  void DeleteObject(MTP::GenericObject*);
 
   void IssueCommand (GenericCommand* in_command);
   QSortFilterProxyModel* GetAlbumModel() const;
@@ -53,9 +55,16 @@ public:
 
 signals:
   void Initialized(QMtpDevice*);
-  void TrackTransferComplete(bool success, GenericCommand*);
+  void TrackTransferComplete(MTP::Track*);
   void NotATrack(SendFileCmd*);
   void UpdateProgress(QString, count_t);
+  void CreatedAlbum(MTP::Album*);
+  void AddedTrackToAlbum(MTP::Track*);
+
+  void RemovedTrack(MTP::Track*);
+  void RemovedFile(MTP::File*);
+  void RemovedAlbum(MTP::Album*);
+  void RemoveFolder(MTP::Folder*);
 
 protected:
   void run();
@@ -65,18 +74,26 @@ private:
   void findAndRetrieveDeviceIcon();
   void initializeDeviceStructures();
 
+  void proccessJob(GenericCommand*);
+
   MTP::Track* SetupTrackTransfer(TagLib::FileRef tagFile, const QString&, 
                                  uint64_t, uint32_t,  LIBMTP_filetype_t);
 
   MTP::File* SetupFileTransfer(const char*,  uint64_t,  count_t, 
                                LIBMTP_filetype_t);
 
-  bool syncTrack(TagLib::FileRef, uint32_t parent); 
+  void syncTrack(TagLib::FileRef, uint32_t parent); 
+  void deleteObject(MTP::GenericObject*);
   bool syncFile(const QString& path, uint32_t parent);
   bool syncFile();
 
   void lockusb();
   void unlockusb();
+
+  bool discoverCoverArt(const QString& in_path,
+                        const QString& in_albumName,
+                        QFileInfo* outFile);
+
   MtpDevice* _device;
 
   MtpWatchDog* _watchDog;
@@ -132,4 +149,6 @@ private:
     QSortFilterProxyModel* _sortedPlaylists;
 
 };
+
+
 #endif

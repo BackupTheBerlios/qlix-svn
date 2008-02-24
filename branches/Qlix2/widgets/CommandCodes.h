@@ -3,10 +3,10 @@
 
 #ifndef __COMMANDCODES__
 #define __COMMANDCODES__
-#include "types.h"
 #include <QString>
 #include <QtDebug>
 #include <QList>
+#include "types.h"
 /**
  * @file
  * This file will detail the thread level protocol between the GUI and the device
@@ -18,13 +18,13 @@ enum CommandCode
     Initialize,
     SendFile,
     GetObj,
+    Delete,
     CreateFSFolder
     /* Not implemented yet
     Connect,
     Disconnect,
     GetDeviceInfo,
     GetFile,
-    Delete,
     GetDirMetaData,
     GetFileMetaData,
     GetSampleData,
@@ -38,6 +38,9 @@ enum CommandCode
 struct GenericCommand 
 {
   CommandCode ComCode;
+  GenericCommand (CommandCode in_code) : ComCode(in_code)
+  { } 
+
   CommandCode GetCommand()  { return ComCode; }
 };
 
@@ -47,36 +50,45 @@ struct SendFileCmd : GenericCommand
     bool IsTrack;
     uint32_t ParentID;
     SendFileCmd (QString in_path, uint32_t in_parent, 
-                        bool in_isTrack = false) 
+                        bool in_isTrack = false) : GenericCommand(SendFile)
     {
         Path = in_path;
         ParentID = in_parent;
         IsTrack = in_isTrack;
-        ComCode = SendFile;
     }
 };
 
 struct GetObjCmd : GenericCommand
 {
-    QString Path;
-    uint32_t ID;
-    GetObjCmd (uint32_t file_id, const QString& in_path)
-    {
-        ID = file_id;
-        Path = in_path;
-        ComCode = GetObj;
-    }
+  QString Path;
+  uint32_t ID;
+  GetObjCmd (uint32_t file_id, const QString& in_path): GenericCommand(GetObj)
+  {
+      ID = file_id;
+      Path = in_path;
+      ComCode = GetObj;
+  }
 };
+
+struct DeleteObjCmd : GenericCommand
+{
+  MTP::GenericObject* Object;
+  DeleteObjCmd (MTP::GenericObject* in_obj) : GenericCommand(Delete),
+                                              Object(in_obj)
+  {}
+};
+
+
 
 struct CreateFSFolderCmd: GenericCommand
 {
     QString Path;
     QString Name;
-    CreateFSFolderCmd(const QString& in_path, const QString& in_name)
+    CreateFSFolderCmd(const QString& in_path, const QString& in_name):
+                                             GenericCommand(CreateFSFolder)
     {
       Path = in_path;
       Name = in_name;
-      ComCode = CreateFSFolder;
     }
 };
 
@@ -147,19 +159,6 @@ struct Disconnect : GenericCommand
     }
 };
 
-
-
-struct Delete : GenericCommand
-{
-    uint32_t FolderID;
-    int FileID;
-    Delete (uint32_t in_Folderid, int in_FileID)
-    {
-        FolderID = in_Folderid;
-        FileID = in_FileID;
-        ComCode = Delete;
-    }
-};
 
 
 struct NewDirectory : GenericCommand

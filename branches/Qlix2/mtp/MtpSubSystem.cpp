@@ -79,14 +79,15 @@ count_t MtpSubSystem::DeviceCount() const
   return _devList.size();
 }
 
-/** A nice (read: bad) O^2 function to figure out what devices have been 
- * disconnected 
- * @return the number of devies as reported by LIBMTP
+/**
+ * This function has been scrapped as we need to use HAL/DBUS
  */
 count_t MtpSubSystem::RawDeviceCount (MtpDeviceVector* connected, 
                                       MtpDeviceVector* disconnected,
                                       MtpDeviceVector* newDevice)
 {
+  return 0;
+  /*
   LIBMTP_mtpdevice_t* list; 
   LIBMTP_error_number_t tempNum;
   tempNum = LIBMTP_Get_Connected_Devices(&list);
@@ -146,6 +147,7 @@ count_t MtpSubSystem::RawDeviceCount (MtpDeviceVector* connected,
   assert(_devList.size() == newDevice->size() + connected->size());
   assert(_devList.size() == newDeviceCount);
   return newDeviceCount;
+  */
 }
 
 /**
