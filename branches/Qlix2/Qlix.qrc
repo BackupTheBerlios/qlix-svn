@@ -37,7 +37,6 @@
         <file>pixmaps/DetectDevices.png</file>
         <file>pixmaps/TreeView/branch-closed.png</file>
         <file>pixmaps/TreeView/branch-open.png</file>
-        <file>pixmaps/TreeView/branch-end.png</file>
     </qresource>
 </RCC>
 

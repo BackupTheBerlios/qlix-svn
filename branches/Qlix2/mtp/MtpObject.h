@@ -121,7 +121,7 @@ private:
 /** 
  * @class Album is a class that wraps around LIBMTP_album_t
 */
-class Album: public GenericObject
+class Album : public GenericObject
 {
 public:
   Album(LIBMTP_album_t*, const LIBMTP_filesampledata_t&);

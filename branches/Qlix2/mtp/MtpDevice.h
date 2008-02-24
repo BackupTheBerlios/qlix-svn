@@ -77,7 +77,7 @@ public:
   bool NewFolder(MTP::Folder*);
   bool RemoveFolder(MTP::Folder*);
 
-  LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample();
+  LIBMTP_filesampledata_t* DefaultJPEGSample();
   //should this be deprecated?
 private:
   LIBMTP_mtpdevice_t* RawDevice() const;

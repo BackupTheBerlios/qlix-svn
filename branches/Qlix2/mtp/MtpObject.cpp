@@ -344,6 +344,7 @@ void Album::AddTrack(Track* in_track)
   in_track->SetParentAlbum(this);
   //row index is not _childTracks.size() +1 as it is zero based..
   in_track->SetRowIndex( _childTracks.size());
+  cout << "Adding track, setting row index to: " << in_track->GetRowIndex();
   _childTracks.push_back(in_track);
 }
 
@@ -384,7 +385,7 @@ void Album::RemoveTrack(count_t in_index)
 {
   if (in_index > _childTracks.size())
     return;
-  cout << "before removal album size: " << _childTracks.size() << endl;
+//  cout << "before removal album size: " << _childTracks.size() << endl;
   Track* deletedTrack = _childTracks[in_index];
   vector<Track*>::iterator iter = _childTracks.begin();
   vector<Track*>::iterator backup_iter;
@@ -395,7 +396,7 @@ void Album::RemoveTrack(count_t in_index)
     iter++; 
     assert(iter != _childTracks.end());
   }
-  cout << "Iterator found index at: " << i << " vs " << in_index << endl;
+//  cout << "Iterator found index at: " << i << " vs " << in_index << endl;
 
   backup_iter = iter +1;
   //Ensure that objects below this object have the correct index
@@ -405,21 +406,13 @@ void Album::RemoveTrack(count_t in_index)
     int prevIdx =  (*backup_iter)->GetRowIndex( );
     assert(prevIdx != 0);
     (*backup_iter)->SetRowIndex( (*backup_iter)->GetRowIndex() -1);
-    cout << "Previous idx: " << prevIdx << " new idx: " << (*backup_iter)->GetRowIndex() << endl;
     assert(currentTrack->GetRowIndex() >= 0);
     backup_iter++;
   }
   assert(*iter == deletedTrack); 
-//  delete deletedTrack;
   _childTracks.erase(iter);
-  cout << "after removal album size: " << TrackCount() << endl;
-/*
-  iter = _childTracks.end();
-  iter--;
-
-  Track* lastTrack = (*iter);
-  */
-//  assert( lastTrack->GetRowIndex() == _childTracks.size()-1);
+  delete deletedTrack;
+//  cout << "after removal album size: " << TrackCount() << endl;
 }
 
 void Album::RemoveFromRawAlbum(count_t index)

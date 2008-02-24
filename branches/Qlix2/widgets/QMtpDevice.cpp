@@ -530,6 +530,7 @@ void QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
       sample->data = newBuffer;
       _device->UpdateAlbumArt(trackAlbum, sample);
     }
+    trackAlbum->SetInitialized();
 
     //if thats successful we can update the view with the new album
     emit CreatedAlbum(trackAlbum);

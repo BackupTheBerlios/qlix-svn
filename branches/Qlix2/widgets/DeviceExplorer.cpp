@@ -5,6 +5,7 @@
  * @param in_device the device whos database to represent
  * @param parent the parent widget of this widget, should QlixMainWindow
  */
+#define ALBUMDEBUG
 DeviceExplorer::DeviceExplorer(QMtpDevice* in_device, QWidget* parent) :
                               _device(in_device),
                               _progressBar(NULL)
@@ -86,8 +87,8 @@ void DeviceExplorer::ShowAlbums()
     if (_queueShown)
       _queueView->show();
   }//  _sortedModel->setSourceModel(_albumModel);
-  if (_deviceView->model() != _unsortedAlbumModel)
-    _deviceView->setModel(_unsortedAlbumModel);
+  if (_deviceView->model() != _albumModel)
+    _deviceView->setModel(_albumModel);
     _deviceView->setStyleSheet("QTreeView::branch:!adjoins-item, QTreeView::branch:!has-children:open{ background: none} QTreeView::branch:has-children:closed{ image: url(:/pixmaps/TreeView/branch-closed.png)} QTreeView::branch:has-children:open{ image: url(:/pixmaps/TreeView/branch-open.png)}"); 
 /*    //To be continued
  *    _deviceView->setStyleSheet("QTreeView::branch{ background: none} \
@@ -116,7 +117,7 @@ void DeviceExplorer::setupToolBars()
 void DeviceExplorer::setupDeviceView() 
 {
   _deviceView = new QTreeView();
-  _deviceView->setModel(_unsortedAlbumModel);
+  _deviceView->setModel(_albumModel);
   _deviceView->setSelectionBehavior(QAbstractItemView::SelectRows);
   _deviceView->setSelectionMode(QAbstractItemView::ExtendedSelection);
   _deviceView->setSortingEnabled(true);
@@ -278,9 +279,11 @@ void DeviceExplorer::setupConnections()
   connect(_device, SIGNAL(AlbumCreated(MTP::Album*)),
           temp, SLOT(Beep()), Qt::QuuuedConnection);
   */
+  /*
   connect(_device, SIGNAL(CreatedAlbum(MTP::Album*)),
           _albumModel, SLOT(invalidate()), Qt::BlockingQueuedConnection);
 
+*/
   connect(_device, SIGNAL(CreatedAlbum(MTP::Album*)),
           _albumModel->sourceModel(), SLOT(AddAlbum(MTP::Album*)),
           Qt::BlockingQueuedConnection);
@@ -288,12 +291,14 @@ void DeviceExplorer::setupConnections()
   connect(_device, SIGNAL(AddedTrackToAlbum(MTP::Track*)),
           _albumModel->sourceModel(), SLOT(AddTrack(MTP::Track*)),
           Qt::BlockingQueuedConnection);
+/*
   connect(_device, SIGNAL(AddedTrackToAlbum(MTP::Track*)),
           _albumModel, SLOT(invalidate()),
           Qt::BlockingQueuedConnection);
 
   connect(_device, SIGNAL(RemovedTrack(MTP::Track*)),
           _albumModel, SLOT(invalidate()), Qt::BlockingQueuedConnection);
+  */
 
   connect(_device, SIGNAL(RemovedTrack(MTP::Track*)),
           _albumModel->sourceModel(), SLOT(RemoveTrack(MTP::Track*)),
@@ -302,16 +307,17 @@ void DeviceExplorer::setupConnections()
   connect(_device, SIGNAL(RemovedAlbum(MTP::Album*)),
           _albumModel->sourceModel(), SLOT(RemoveAlbum(MTP::Album*)),
           Qt::BlockingQueuedConnection);
-
+/*
   connect(_device, SIGNAL(RemovedAlbum(MTP::Album*)),
           _albumModel, SLOT(invalidate()),
           Qt::BlockingQueuedConnection);
+  */
 
 }
 
 void DeviceExplorer::Beep(MTP::Track* in_track)
 {
-  qDebug() << "WTF from device Explorer";
+  qDebug() << "Beep from device Explorer";
   ((AlbumModel*)_albumModel->sourceModel())->AddTrack(in_track);
   _albumModel->invalidate();
 }
@@ -618,9 +624,19 @@ QModelIndexList DeviceExplorer::removeIndexDuplicates(
     while (parent.isValid())
     {
       QModelIndex rightOfFirst;
+      QModelIndex leftOfFirst;
       foreach(rightOfFirst, tempList)
       {
         if (rightOfFirst == parent)
+        {
+          found = true;
+          dupCount++;
+          break;
+        }
+      }
+      foreach(leftOfFirst, ret)
+      {
+        if (leftOfFirst == parent);
         {
           found = true;
           dupCount++;
@@ -646,6 +662,17 @@ QModelIndexList DeviceExplorer::removeIndexDuplicates(
   }
   qDebug() << "Found :" << dupCount << " duplicates" << endl;
   qDebug() << "ret size:" <<ret.size();
+#ifdef ALBUMDEBUG
+  QModelIndex temp;
+  qDebug() << "__Selection order__";
+  int i = 0;
+  foreach(temp, ret)
+  {
+    QString tempOut = (((AlbumModel*)_albumModel->sourceModel())->data(temp, Qt::DisplayRole)).toString();
+    qDebug()<< i << ": " << tempOut;
+    i++;
+  }
+#endif
   return ret;
 }
 

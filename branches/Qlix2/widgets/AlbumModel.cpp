@@ -189,8 +189,10 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
   if (role == Qt::SizeHintRole)
   {
     MTP::GenericObject* temp = (MTP::GenericObject*) index.internalPointer();
+    /*
     if (temp->Type() == MtpAlbum && index.column() == 0)
       return QSize(28, 28);
+      */
   }
   if (role == Qt::FontRole)
   {
@@ -282,17 +284,20 @@ void AlbumModel::AddAlbum(MTP::Album* in_album)
 
 void AlbumModel::AddTrack(MTP::Track* in_track)
 {
-  qDebug() << "Called Add Track" << endl;
+  qDebug() << "Called Add Track";
   MTP::Album* parentAlbum = in_track->ParentAlbum();
   assert(parentAlbum);
   in_track->SetRowIndex(parentAlbum->TrackCount());
-  QModelIndex parentIdx = createIndex(in_track->GetRowIndex(), 0, parentAlbum);
-  emit layoutAboutToBeChanged();
+  QModelIndex parentIdx = createIndex(parentAlbum->GetRowIndex(), 0, parentAlbum);
+  int sz = parentAlbum->TrackCount();
+//  emit layoutAboutToBeChanged();
   emit beginInsertRows(parentIdx, parentAlbum->TrackCount(), 
                        parentAlbum->TrackCount());
   parentAlbum->AddTrack(in_track);
   emit endInsertRows();
-  emit layoutChanged();
+//  emit layoutChanged();
+  assert(sz+1 == parentAlbum->TrackCount());
+  qDebug() << "old size: " << sz << " new size: " << parentAlbum->TrackCount();
 }
 
 void AlbumModel::RemoveAlbum(MTP::Album* in_album)
@@ -302,11 +307,13 @@ void AlbumModel::RemoveAlbum(MTP::Album* in_album)
   assert(in_album);
   assert(in_album->GetRowIndex() < _albumList.size());
   QModelIndex parentIdx = QModelIndex();
-  emit beginRemoveRows(parentIdx, _device->AlbumCount(), 
-                       _device->AlbumCount());
+  emit beginRemoveRows(parentIdx, in_album->GetRowIndex(),
+                      in_album->GetRowIndex());
   for (int i =in_album->GetRowIndex()+1; i < _albumList.size(); i++)
     _albumList[i]->SetRowIndex(i -1);
+  MTP::Album* deleteThisAlbum = _albumList[in_album->GetRowIndex()];
   _albumList.remove(in_album->GetRowIndex());
+  delete deleteThisAlbum;
   emit endRemoveRows();
 }
 
@@ -316,14 +323,14 @@ void AlbumModel::RemoveTrack(MTP::Track* in_track)
   MTP::Album* parentAlbum = in_track->ParentAlbum();
   assert(parentAlbum);
 
-  QModelIndex parentIdx = createIndex(in_track->GetRowIndex(), 0,
+  QModelIndex parentIdx = createIndex(parentAlbum->GetRowIndex(), 0,
                                       parentAlbum);
-  emit layoutAboutToBeChanged();
+  //emit layoutAboutToBeChanged();
   emit beginRemoveRows(parentIdx, in_track->GetRowIndex(), 
                        in_track->GetRowIndex());
   parentAlbum->RemoveTrack(in_track->GetRowIndex());
   emit endRemoveRows();
-  emit layoutChanged();
+ // emit layoutChanged();
 }
 
 
