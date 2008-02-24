@@ -648,8 +648,8 @@ void MtpDevice::createTrackBasedStructures()
     _objectMap[currentPlaylist->ID()] = currentPlaylist; 
     if (_objectMap.size() != size+1)
     {
-      cerr << "Playlist crosslinked! please report this to\ caffein@gmail.com"
-            << endl;
+      cerr << "Playlist crosslinked! please report this " 
+           << " to caffein@gmail.com" << endl;
       assert(false);
     }
     //now iterate over the playlist's children..
@@ -664,8 +664,8 @@ void MtpDevice::createTrackBasedStructures()
       assert(_trackMap.size() == size);
       if (track->Type() != MtpTrack)
       {
-        cerr << "Current track: " << track_id << "is crosslinked please \
-        report this to caffein@gmail.com" << endl;
+        cerr << "Current track: " << track_id << "is crosslinked please "
+             << "report this to caffein@gmail.com" << endl;
         assert(false);
       }
       currentPlaylist->AddTrack( (MTP::Track*) track );
