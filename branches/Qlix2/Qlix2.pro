@@ -43,6 +43,7 @@ SOURCES += main.cpp \
 RESOURCES += Qlix.qrc
 unix {
   DEFINES += LINUX_SIGNALS
+  DEFINES += LINUX_DBUS
   DEFINES += QLIX_DEBUG
 
   TAGLIB_INC = $$system(taglib-config --cflags)
@@ -50,6 +51,8 @@ unix {
 
   LIBS += $$TAGLIB_LIBS
   LIBS += "-lmtp"
+
+  CONFIG += qdbus
 
   INCLUDEPATH +="/usr/include/"
   INCLUDEPATH +="/usr/local/include/"

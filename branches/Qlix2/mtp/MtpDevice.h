@@ -10,6 +10,7 @@
 #include "types.h"
 #include "mtp/MtpObject.h"
 using namespace std;
+typedef map<uint32_t, MTP::GenericObject* > GenericMap;
 
 /** 
  * @class MtpDevice is a wrapper class around libmtp's device module
@@ -96,7 +97,7 @@ private:
   LIBMTP_progressfunc_t _progressFunc;
   const void* _progressData;
 
-  map<uint32_t, MTP::GenericObject*> _objectMap;
+  GenericMap _objectMap;
   map<uint32_t, MTP::Track*> _trackMap;
   map<uint32_t, MTP::Album*> _albumMap;
   map<uint32_t, MTP::Playlist*> _playlistMap;

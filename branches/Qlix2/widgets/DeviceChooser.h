@@ -38,7 +38,7 @@ public slots:
   void ExclusivelySelected(DeviceButton*, QMtpDevice*); 
   void Reinitialize();
   void AddDevice(QMtpDevice*);
-  void NoDevices();
+  void NoDevices(bool);
 
 private slots:
   void deviceCountChanged();
@@ -106,6 +106,15 @@ private:
       _layout->addItem(_bottom, 3, 0, 1, -1);
       setLayout(_layout);
     } 
+    /** This function changes the image to a recycle sign and tells the user
+     * to connect a device as DBUS seems to be functioning
+     */
+    void SetDBusSearch()
+    {
+      QString txt ("<h2>No devices found. Please connect a device..<h2>");
+      _text->setText(txt);
+      _image->setPixmap(QPixmap(":/pixmaps/DetectDevices.png"));
+    }
 
     private:
     QGridLayout* _layout;

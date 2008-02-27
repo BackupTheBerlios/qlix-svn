@@ -21,8 +21,8 @@ void QlixMainWindow::setupWatchDogConnections()
           this, SLOT(DeviceSelected(QMtpDevice*)), Qt::QueuedConnection);
   connect(_watchDog, SIGNAL(NewDevice(QMtpDevice*)),
           _deviceChooser, SLOT(AddDevice(QMtpDevice*)), Qt::QueuedConnection);
-  connect(_watchDog, SIGNAL(NoDevices()),
-          _deviceChooser, SLOT(NoDevices()), Qt::QueuedConnection);
+  connect(_watchDog, SIGNAL(NoDevices(bool)),
+          _deviceChooser, SLOT(NoDevices(bool)), Qt::QueuedConnection);
 }
 
 void QlixMainWindow::DeviceSelected(QMtpDevice* in_device)

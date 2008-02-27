@@ -16,39 +16,33 @@ void MtpWatchDog::run()
 {
   Lock();
   _subSystem->Initialize();
-  QSettings settings;
-  QString defaultDev = settings.value("DefaultDevice").toString();
 
   if (_subSystem->DeviceCount() == 0)
   {
-    emit NoDevices();
+#ifdef LINUX_DBUS
+    setupDBUS();
+    Unlock();
+    exec();
+#else
+    emit NoDevices(false);
+    Unlock();
+    return;
+#endif
+  }
+
+  if (findDefaultDevice())
+  {
+    Unlock();
     return;
   }
 
-  for (count_t i = 0; i< _subSystem->DeviceCount() && !defaultDev.isEmpty(); i++)
-  {
-    if (QString::fromUtf8(_subSystem->Device(i)->SerialNumber()) == defaultDev)
-    {
-      QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);
-      connect(_threadedDev, SIGNAL(Initialized (QMtpDevice*)),
-              this, SIGNAL(DefaultDevice(QMtpDevice*)), Qt::QueuedConnection);
-      qDebug() << "Found the defualt device: " << defaultDev;
-      Unlock();
-      return;
-    }
-  }
-
-  for (count_t i = 0; i< _subSystem->DeviceCount(); i++)
-  {
-    QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);
-    connect(_threadedDev, SIGNAL(Initialized (QMtpDevice*)),
-            this, SIGNAL(NewDevice (QMtpDevice*)), Qt::QueuedConnection);
-  }
+  createDevices();
   Unlock();
-// Currently libmtp does not support polling the device interface so for now 
-// this is allthis function does, that is, create QMtpDevices for discovered devices
-//  while (true)
-//  {  }
+// Currently libmtp does not support polling 
+// In the future this will probably be supported by HAL/DBUS signals that
+// will inform us when a MTP device has been connected. At that point we would
+// ask LIBMTP to created a LIBMTP_device_t struct from a (potentially) USB port
+// number
 }
 
 /** 
@@ -66,3 +60,98 @@ void MtpWatchDog::Unlock()
 {
   _subSystemLock.unlock();
 }
+
+bool MtpWatchDog::findDefaultDevice()
+{
+  QSettings settings;
+  QString defaultDev = settings.value("DefaultDevice").toString();
+
+  for (count_t i = 0; i< _subSystem->DeviceCount() &&
+                      !defaultDev.isEmpty(); i++)
+  {
+    if (QString::fromUtf8(_subSystem->Device(i)->SerialNumber()) == defaultDev)
+    {
+      QMtpDevice* threadedDev = new QMtpDevice(_subSystem->Device(i), this);
+      connect(threadedDev, SIGNAL(Initialized (QMtpDevice*)),
+              this, SIGNAL(DefaultDevice(QMtpDevice*)), Qt::QueuedConnection);
+      qDebug() << "Found the defualt device: " << defaultDev;
+      return true;
+    }
+  }
+  return false;
+}
+
+void MtpWatchDog::createDevices()
+{
+  for (count_t i = 0; i< _subSystem->DeviceCount(); i++)
+  {
+    QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);
+    connect(_threadedDev, SIGNAL(Initialized (QMtpDevice*)),
+            this, SIGNAL(NewDevice (QMtpDevice*)), Qt::QueuedConnection);
+  }
+}
+
+#ifdef LINUX_DBUS
+void MtpWatchDog::setupDBUS()
+{
+  QDBusConnection _systemBus = QDBusConnection::systemBus();
+  bool ret = _systemBus.connect("org.freedesktop.Hal", 
+                                 "/org/freedesktop/Hal/Manager",
+                                 "org.freedesktop.Hal.Manager",
+                                 "DeviceAdded",
+                                 this, SLOT(DeviceAdded(QString)));
+  QDBusInterface hal("org.freedesktop.Hal",
+                     "/org/freedesktop/Hal/Manager",
+                     "org.freedesktop.Hal.Manager", _systemBus);
+
+  bool dbusConnectionHealth =  (ret && _systemBus.isConnected() &&
+                                hal.isValid());
+  emit NoDevices(dbusConnectionHealth);
+}
+
+void MtpWatchDog::DeviceAdded(QString in_objRef)
+{
+  qDebug() << "connected: " << in_objRef;
+  QDBusConnection _systemBus = QDBusConnection::systemBus();
+  QDBusInterface usbDevice("org.freedesktop.Hal", in_objRef, 
+                           "org.freedesktop.Hal.Device", _systemBus);
+
+  QDBusReply<int> vendorReply = usbDevice.call("GetPropertyInteger",
+                                                "usb.vendor_id");
+  QDBusReply<int> productReply = usbDevice.call("GetPropertyInteger",
+                                                "usb.product_id");
+  QDBusReply<QStringList> protocolReply;
+  protocolReply = usbDevice.call("GetPropertyStringList",
+                              "portable_audio_player.access_method.protocols");
+
+  QDBusReply<QString> protocolReply2;
+  protocolReply2 = usbDevice.call("GetPropertyString",
+                              "info.udi");
+  if (vendorReply.isValid() && productReply.isValid())
+  {
+    QString vendorID = QString("%1").arg(vendorReply.value(), 0, 16);
+    QString productID = QString("%1").arg(productReply.value(), 0, 16);
+    qDebug() << "Vendor: " <<  vendorID;
+    qDebug() << "Product: " <<  productID;
+  }
+  if(protocolReply.isValid())
+  {
+    qDebug() << "Protocol: " <<  protocolReply.value();
+    qDebug() << "Protocol udi: " <<  protocolReply2.value();
+  }
+  Lock();
+  if (_subSystem->DeviceCount() == 0)
+  {
+    _subSystem->Initialize();
+   
+    if (findDefaultDevice() )
+    {
+      Unlock();
+      return;
+    }
+     createDevices();
+  }
+  Unlock();
+  //TODO potentially disconnect the DBUS connection
+}
+#endif

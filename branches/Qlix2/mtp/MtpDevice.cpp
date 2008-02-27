@@ -1,6 +1,8 @@
 //TODO Improve error handling / Reporting (once theres an error console)
 //TODO Should raw object references returns be of const types? 
 //     No this is a bad idea as sending files updates the file id we discover
+//TODO Cleanup: remove finding crosslinks using the "previous" techinique and
+//     STL's map::find function
 
 #include "MtpDevice.h"
 #undef QLIX_DEBUG
@@ -376,19 +378,20 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root, bool firstRun)
     //add this folder to the list of folders at this level
     curLevelFolders.push_back(temp);
     
-    //previous is used if there is a crosslinked entry
-    MTP::GenericObject* previous = _objectMap[temp->ID()];
+    //find
+    GenericMap::iterator iter = _objectMap.find(temp->ID());
+    GenericMap::iterator iterEnd = _objectMap.end();
+    if(iter != iterEnd)
+    {
+      cout << "Folder crosslink!" << endl;
+    }
+
     _objectMap[temp->ID()] = temp; 
-    cout << "Added: " << temp->ID() << " to the map with name: " << temp->Name() << endl;
+    cout << "Added: " << temp->ID() << " to the map with name: " 
+         << temp->Name() << endl;
 
     //crosslink check
-    if(_objectMap.size() != size+1)
-    {
-      assert(previous);
-      _crossLinked.push_back(previous);
-      _crossLinked.push_back(temp);
-    }
-    folderRoot = folderRoot->sibling;
+       folderRoot = folderRoot->sibling;
   }
   for (count_t i =0; i < curLevelFolders.size(); i++)
       createFolderStructure(curLevelFolders[i], false);
@@ -429,7 +432,7 @@ void MtpDevice::dbgPrintFolders(MTP::Folder* root, count_t level)
   {
     for (count_t j = 0; j < level; j++)
       cout << "  ";
-    MTP::Folder* temp = root->SubFolder(i); 
+    MTP::Folder* temp = root->ChildFolder(i); 
     cout << temp->Name() << endl;
     dbgPrintFolders(temp, level+1);
   }
@@ -521,7 +524,7 @@ void MtpDevice::createFileStructure()
     }
 
     parentFolder->AddChildFile(currentFile);
-    currentFile->SetParent(parentFolder);
+    currentFile->SetParentFolder(parentFolder);
     /*
     cout << "Set " << parentFolder->Name() << " as parent of "
          << currentFile->Name() << endl;

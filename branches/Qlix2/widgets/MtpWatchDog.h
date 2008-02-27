@@ -9,6 +9,11 @@
 #include "widgets/QMtpDevice.h"
 #include "QSettings"
 
+#ifdef LINUX_DBUS
+#include <QtDBus>
+#include <QDBusInterface>
+#endif
+
 class QMtpDevice;
 /**
  * @class This class will in the future be used to handle events such as
@@ -27,7 +32,8 @@ signals:
   void DeviceCountChanged(count_t );
   void NewDevice(QMtpDevice* Device);
   void DefaultDevice(QMtpDevice* Device);
-  void NoDevices();
+  void NoDevices(bool);
+
 
 protected:
   void run();
@@ -35,6 +41,15 @@ protected:
 private:
   QMutex _subSystemLock;
   MtpSubSystem* _subSystem;
+
+  bool findDefaultDevice();
+  void createDevices();
   count_t _deviceCount;
+#ifdef LINUX_DBUS
+  void setupDBUS();
+  //QDBusConnection _systemBus;
+private slots:
+  void DeviceAdded(QString);
+#endif
 };
 #endif

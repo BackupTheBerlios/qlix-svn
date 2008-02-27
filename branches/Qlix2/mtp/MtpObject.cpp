@@ -145,10 +145,60 @@ Playlist* Track::ParentPlaylist() const { return _parentPlaylist; }
  * @return a new File object
  */
 File::File(LIBMTP_file_t* in_file) : 
-           GenericObject (MtpFile, in_file->item_id)
+           GenericObject (MtpFile, in_file->item_id),
+           _album(NULL),
+           _parent(NULL),
+           _track(NULL),
+           _playlist(NULL)
 {
   _rawFile = in_file;
-  _parent = NULL;
+}
+
+/**
+ * @return the file's associated Track. If not associated this returns NULL.
+ */
+Track* File::GetTrack() const
+{
+  return _track;
+}
+/**
+ * @return the file's associated Album. If not associated this returns NULL.
+ */
+Album* File::GetAlbum() const
+{
+  return _album;
+}
+/**
+ * @return the file's associated Playlist. If not associated this returns NULL.
+ */
+Playlist* File::GetPlaylist() const
+{
+  return _playlist;
+}
+
+
+/**
+ * Sets the File's associated Track
+ */
+void File::SetTrack(Track* in_track) 
+{
+  _track = in_track;
+}
+
+/**
+ * Sets the File's associated Album.
+ */
+void File::SetAlbum(Album* in_album)
+{
+  _album= in_album;
+}
+
+/**
+ * Sets the File's associated Playlist.
+ */
+void File::SetPlaylist(Playlist* in_playlist)
+{
+  _playlist = in_playlist;
 }
 
 /**
@@ -161,12 +211,12 @@ count_t File::ParentID() const { return _rawFile->parent_id; }
  * Retreives the file's parent Folder
  * @return the file's parent Folder or NULL if it exists in the root dir
  */
-Folder* File::Parent() const { return _parent; }
+Folder* File::ParentFolder() const { return _parent; }
 
 /**
  * Sets the file's parent Folder
  */
-void File::SetParent(Folder* in_parent) 
+void File::SetParentFolder(Folder* in_parent) 
 { 
   _parent = in_parent;
 }
@@ -207,7 +257,7 @@ Folder::Folder(LIBMTP_folder_t* in_folder, Folder* in_parent) :
  * Return's this folder's parent
  * @return the folder's parent
  */
-Folder* Folder::Parent() const
+Folder* Folder::ParentFolder() const
 {
   return _parent;
 }
@@ -225,10 +275,13 @@ LIBMTP_folder_t* Folder::RawFolder() const
  * Returns the subfolder at the given index if it exists.
  * @return the subfolder at the given index or NULL if it doesn't exist
  */
-Folder* Folder::SubFolder(count_t idx) const
+Folder* Folder::ChildFolder(count_t idx) const
 {
   if (idx >= _childFolders.size())
+  {
+    cerr << "Requesting invalid child index for folder" << endl;
     return NULL;
+  }
   else
     return _childFolders[idx];
 }
@@ -237,7 +290,7 @@ Folder* Folder::SubFolder(count_t idx) const
  * Returns the subfolder at the given index if it exists.
  * @return the subfolder at the given index or NULL if it doesn't exist
  */
-File* Folder::SubFile(count_t idx) const
+File* Folder::ChildFile(count_t idx) const
 {
   if (idx >= _childFiles.size())
     return NULL;
@@ -332,6 +385,7 @@ const LIBMTP_filesampledata_t& Album::SampleData() const
 {
   return _sample;
 }
+
 
 /** Adds the passed track as a subtrack to this album
  *  The caller must ensure that the album is then updated on the device

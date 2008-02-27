@@ -42,7 +42,7 @@ QModelIndex DirModel::index(int row, int col,
     int idx = row - folder->FolderCount();
     if (row < (int) folder->FolderCount() )
     {
-      MTP::Folder* ret = folder->SubFolder(row);
+      MTP::Folder* ret = folder->ChildFolder(row);
       assert(ret);
 //      qDebug() << "Found folder: " << QString::fromUtf8(ret->Name());
       return createIndex(row, col, ret); 
@@ -50,7 +50,7 @@ QModelIndex DirModel::index(int row, int col,
 
     else if (idx < (int)folder->FileCount() && idx >= 0)
     {
-      MTP::File* ret = folder->SubFile(idx);
+      MTP::File* ret = folder->ChildFile(idx);
       assert(ret);
 //      qDebug() << "Found file: " << QString::fromUtf8(ret->Name());
       return createIndex(row, col, ret);
@@ -76,7 +76,7 @@ QModelIndex DirModel::parent(const QModelIndex& idx) const
 
   if(obj->Type() == MtpFolder)
   {
-    MTP::Folder* parent = ((MTP::Folder*)obj)->Parent();
+    MTP::Folder* parent = ((MTP::Folder*)obj)->ParentFolder();
     if (!parent) 
       return QModelIndex();
    MTP::Folder* fobj = (MTP::Folder*) obj;
@@ -85,7 +85,7 @@ QModelIndex DirModel::parent(const QModelIndex& idx) const
   }
   else if (obj->Type() == MtpFile)
   {
-    MTP::Folder* parent = ((MTP::File*)obj)->Parent();
+    MTP::Folder* parent = ((MTP::File*)obj)->ParentFolder();
     if (!parent) 
       return QModelIndex();
      MTP::File* fobj = (MTP::File*) obj;

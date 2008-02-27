@@ -297,14 +297,14 @@ void QMtpDevice::DeleteObject(MTP::GenericObject* obj)
 
       for (count_t i =0; i < rootFolder->FileCount(); i++)
       {
-        currentFile = rootFolder->SubFile(i);
+        currentFile = rootFolder->ChildFile(i);
         cmd = new DeleteObjCmd(currentFile);
         IssueCommand(cmd);
       }
       //recurse on all subfolders
       for (count_t i =0; i < rootFolder->FolderCount(); i++)
       {
-        currentFolder = rootFolder->SubFolder(i);
+        currentFolder = rootFolder->ChildFolder(i);
         DeleteObject(currentFolder);
       }
       //delete the currentfolder
@@ -409,7 +409,7 @@ void QMtpDevice::TransferFrom(MTP::GenericObject* obj, QString filePath)
       QString subFolderPath = filePath + QDir::separator() + folderName;
       for (count_t i =0; i < rootFolder->FileCount(); i++)
       {
-        currentFile = rootFolder->SubFile(i);
+        currentFile = rootFolder->ChildFile(i);
         QString subFilePath = subFolderPath + QDir::separator() + 
                               QString::fromUtf8(currentFile->Name());
         cmd = new GetObjCmd (currentFile->ID(), subFilePath);
@@ -418,7 +418,7 @@ void QMtpDevice::TransferFrom(MTP::GenericObject* obj, QString filePath)
       //recurse on all subfolders
       for (count_t i =0; i < rootFolder->FolderCount(); i++)
       {
-        currentFolder = rootFolder->SubFolder(i);
+        currentFolder = rootFolder->ChildFolder(i);
         TransferFrom(currentFolder, subFolderPath);
       }
       break;

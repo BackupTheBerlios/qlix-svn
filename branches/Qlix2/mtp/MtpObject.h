@@ -46,14 +46,26 @@ public:
   File(LIBMTP_file_t*);
   count_t ParentID() const;
   virtual const char * const Name() const;
+  void SetAlbum(Album*);
+  void SetTrack(Track*);
+  void SetPlaylist(Playlist*);
 
-  void SetParent(Folder*);
-  Folder* Parent() const;
+
+  Album* GetAlbum() const;
+  Track* GetTrack() const;
+  Playlist* GetPlaylist() const;
+
+  void SetParentFolder(Folder*);
+  Folder* ParentFolder() const;
+
   LIBMTP_file_t* const RawFile() const;
 private:
   LIBMTP_file_t* _rawFile;
   LIBMTP_filesampledata_t _sampleData;
   Folder* _parent;
+  Track* _track;
+  Album* _album;
+  Playlist* _playlist;
 };
 
 /** 
@@ -65,11 +77,11 @@ public:
   Folder(LIBMTP_folder_t*, Folder*);
   count_t FileCount() const;
   count_t FolderCount() const;
-  Folder* Parent() const;
+  Folder* ParentFolder() const;
 
   virtual char const * const Name() const;
-  Folder* SubFolder(count_t ) const;
-  File* SubFile(count_t ) const;
+  Folder* ChildFolder(count_t ) const;
+  File* ChildFile(count_t ) const;
 
   LIBMTP_folder_t* RawFolder() const;
   void AddChildFolder(Folder*);

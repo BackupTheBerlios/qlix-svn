@@ -84,8 +84,11 @@ void DeviceChooser::AddDevice(QMtpDevice* in_device)
 }
 
 
-void DeviceChooser::NoDevices()
+void DeviceChooser::NoDevices(bool in_dbusWorking)
 {
+  qDebug() << "Is dbus working: " << in_dbusWorking;
+  if (in_dbusWorking)
+    _noDeviceWidget->SetDBusSearch();
   QScrollArea::setWidget(_noDeviceWidget);
 }
 
