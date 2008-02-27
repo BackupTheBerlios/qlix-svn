@@ -88,10 +88,11 @@ void MtpWatchDog::createDevices()
 {
   for (count_t i = 0; i< _subSystem->DeviceCount(); i++)
   {
-    QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);
-    connect(_threadedDev, SIGNAL(Initialized (QMtpDevice*)),
+    QMtpDevice* threadedDev = new QMtpDevice(_subSystem->Device(i), this);
+    threadedDev->moveToThread(QApplication::instance()->thread());
+    connect(threadedDev, SIGNAL(Initialized (QMtpDevice*)),
             this, SIGNAL(NewDevice (QMtpDevice*)), Qt::QueuedConnection);
-    _threadedDev->start();
+    threadedDev->start();
   }
 }
 
