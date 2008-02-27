@@ -72,8 +72,11 @@ bool MtpWatchDog::findDefaultDevice()
     if (QString::fromUtf8(_subSystem->Device(i)->SerialNumber()) == defaultDev)
     {
       QMtpDevice* threadedDev = new QMtpDevice(_subSystem->Device(i), this);
+      threadedDev->moveToThread(QApplication::instance()->thread());
+
       connect(threadedDev, SIGNAL(Initialized (QMtpDevice*)),
               this, SIGNAL(DefaultDevice(QMtpDevice*)), Qt::QueuedConnection);
+      threadedDev->start();
       qDebug() << "Found the defualt device: " << defaultDev;
       return true;
     }
@@ -88,6 +91,7 @@ void MtpWatchDog::createDevices()
     QMtpDevice* _threadedDev = new QMtpDevice(_subSystem->Device(i), this);
     connect(_threadedDev, SIGNAL(Initialized (QMtpDevice*)),
             this, SIGNAL(NewDevice (QMtpDevice*)), Qt::QueuedConnection);
+    _threadedDev->start();
   }
 }
 
@@ -145,10 +149,8 @@ void MtpWatchDog::DeviceAdded(QString in_objRef)
     _subSystem->Initialize();
    
     if (findDefaultDevice() )
-    {
-      Unlock();
       return;
-    }
+    else
      createDevices();
   }
   Unlock();
