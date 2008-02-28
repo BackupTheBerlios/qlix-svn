@@ -32,6 +32,7 @@ void QlixMainWindow::DeviceSelected(QMtpDevice* in_device)
 #endif
   setupStatusBar();
   _deviceChooser->hide();
+  //TODO this is not such a great idea..
   _watchDog->quit();
   _currentDevice = in_device;
 

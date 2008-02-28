@@ -807,12 +807,15 @@ bool MtpDevice::UpdateAlbumArt(MTP::Album* in_album,
 
 /**
  * This function retreives the default JPEG sample parameters from the device
+ * This function assumes that libmtp is initialized
  * @return a preallocated LIBMTP_filesampledata_t* with sane values it is up to
  *         the caller to call LIBMTP_delete_object to free up the memory
  */
 //TODO is this safe when mtp is not initialized?
 LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
 {
+  if (!_device)
+    return NULL;
   LIBMTP_filesampledata_t* sample;
   int ret = LIBMTP_Get_Representative_Sample_Format(_device, 
                                                     LIBMTP_FILETYPE_JPEG,

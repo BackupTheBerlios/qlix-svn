@@ -156,28 +156,29 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
     MTP::GenericObject* temp = (MTP::GenericObject*) index.internalPointer();
     if (temp->Type() == MtpAlbum && index.column() == 0)
     {
-        MTP::Album* tempAlbum = (MTP::Album*)temp;
-        LIBMTP_filesampledata_t sample = tempAlbum->SampleData();
-        if (sample.size > 0 && sample.data )
-          /*&& 
-            (sample.filetype == LIBMTP_FILETYPE_JPEG ||
-            sample.filetype == LIBMTP_FILETYPE_JPX ||
-            sample.filetype == LIBMTP_FILETYPE_JP2))
-            */
-        {
-          QPixmap ret;
-          ret.loadFromData( (const uchar*)sample.data, sample.size);
+      MTP::Album* tempAlbum = (MTP::Album*)temp;
+      LIBMTP_filesampledata_t sample = tempAlbum->SampleData();
+      if (sample.size > 0 && sample.data )
+        /*&& 
+          (sample.filetype == LIBMTP_FILETYPE_JPEG ||
+          sample.filetype == LIBMTP_FILETYPE_JPX ||
+          sample.filetype == LIBMTP_FILETYPE_JP2))
+          */
+      {
+        QPixmap ret;
+        ret.loadFromData( (const uchar*)sample.data, sample.size);
+        qDebug() << "album decoration found:" << sample.filetype  << " with size: " << sample.size;
 #ifdef SIMULATE_TRANSFERS
-          qDebug()  << "Actual sample found in simulate mode!";
+        qDebug()  << "Actual sample found in simulate mode!";
 #endif
-          return ret.scaledToWidth(24, Qt::SmoothTransformation);
-        }
-        else 
-        {
-//          qDebug() << "album decoration is not a jpeg:" << sample.filetype  << " with size: " << sample.size;
-          QPixmap ret("pixmaps/miscAlbumCover.png");
-          return ret.scaledToWidth(24, Qt::SmoothTransformation);
-        }
+        return ret.scaledToWidth(24, Qt::SmoothTransformation);
+      }
+      else 
+      {
+        qDebug() << "album decoration is not a jpeg:" << sample.filetype  << " with size: " << sample.size;
+        QPixmap ret("pixmaps/miscAlbumCover.png");
+        return ret.scaledToWidth(24, Qt::SmoothTransformation);
+      }
     }
     else if (temp->Type() == MtpTrack && index.column() == 0)
     {

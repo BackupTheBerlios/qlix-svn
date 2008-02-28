@@ -504,9 +504,11 @@ void QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
     bool ret = discoverCoverArt(filePath, 
                                 QString::fromUtf8(trackAlbum->Name()),
                                 &cover);
+    qDebug() << "Found cover art!";
     LIBMTP_filesampledata_t* sample = _device->DefaultJPEGSample();
     if (ret && sample != NULL)
     {
+      qDebug() << "LIBMTP reported valid sample data";
       count_t width = sample->width;
       count_t height = sample->height;
       if (height > width)
@@ -529,6 +531,12 @@ void QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
       sample->data = newBuffer;
       _device->UpdateAlbumArt(trackAlbum, sample);
     }
+    else if (sample == NULL)
+    {
+      qDebug() << "LIBMTP reported invalid sample data for this device please report"
+               << "this";
+    }
+
     trackAlbum->SetInitialized();
 
     //if thats successful we can update the view with the new album
