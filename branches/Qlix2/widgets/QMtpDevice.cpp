@@ -12,9 +12,7 @@ QMtpDevice::QMtpDevice(MtpDevice* in_device, MtpWatchDog* in_watchDog,
                        _watchDog(in_watchDog),
                        _icon(QPixmap(":/pixmaps/miscDev.png"))
 { 
-//  int* function (uint64_t, uint64_t const void* const) = ;
   _device->SetProgressFunction(progressWrapper, this);
-  start(); 
 }
 
 QString QMtpDevice::Name() { return  _name; }
@@ -174,6 +172,7 @@ void QMtpDevice::initializeDeviceStructures()
  */
 void QMtpDevice::findAndRetrieveDeviceIcon()
 {
+  qDebug() << "Searching for Device Icon";
   count_t fileCount = _device->RootFileCount();
   count_t thread_id = (int)this;
   QString iconPath = QString("/tmp/%1Icon").arg(thread_id); 
@@ -505,9 +504,9 @@ void QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
     bool ret = discoverCoverArt(filePath, 
                                 QString::fromUtf8(trackAlbum->Name()),
                                 &cover);
-    if (ret)
+    LIBMTP_filesampledata_t* sample = _device->DefaultJPEGSample();
+    if (ret && sample != NULL)
     {
-      LIBMTP_filesampledata_t* sample = _device->DefaultJPEGSample();
       count_t width = sample->width;
       count_t height = sample->height;
       if (height > width)

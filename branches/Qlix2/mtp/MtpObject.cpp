@@ -249,7 +249,7 @@ Folder::Folder(LIBMTP_folder_t* in_folder, Folder* in_parent) :
                GenericObject (MtpFolder, in_folder->folder_id)
 {
   assert(in_folder);
-  cout << "Creating new folder " << in_folder->name << " with id:" << ID() << endl;
+//  cout << "Creating new folder " << in_folder->name << " with id:" << ID() << endl;
   _rawFolder = in_folder;
   _parent = in_parent;
 }

@@ -83,6 +83,7 @@ public:
 private:
   LIBMTP_mtpdevice_t* RawDevice() const;
   LIBMTP_mtpdevice_t* _device;
+  bool _initialized;
   char* _name;
   char* _serialNumber;
   char* _version;

@@ -1,4 +1,9 @@
 #include "widgets/MtpWatchDog.h"
+  // Currently libmtp does not support polling 
+  // In the future this will probably be supported by HAL/DBUS signals that
+  // will inform us when a MTP device has been connected. At that point we would
+  // ask LIBMTP to created a LIBMTP_device_t struct from a (potentially) USB port
+  // number
 
 /** 
  * Creates a new WatchDog over the given subsystem
@@ -29,20 +34,14 @@ void MtpWatchDog::run()
     return;
 #endif
   }
-
-  if (findDefaultDevice())
+  else
   {
+    qDebug() << "Device count > 0";
+    if (!findDefaultDevice())
+      createDevices();
     Unlock();
     return;
   }
-
-  createDevices();
-  Unlock();
-// Currently libmtp does not support polling 
-// In the future this will probably be supported by HAL/DBUS signals that
-// will inform us when a MTP device has been connected. At that point we would
-// ask LIBMTP to created a LIBMTP_device_t struct from a (potentially) USB port
-// number
 }
 
 /** 
@@ -76,6 +75,7 @@ bool MtpWatchDog::findDefaultDevice()
 
       connect(threadedDev, SIGNAL(Initialized (QMtpDevice*)),
               this, SIGNAL(DefaultDevice(QMtpDevice*)), Qt::QueuedConnection);
+      assert(!threadedDev->isRunning());
       threadedDev->start();
       qDebug() << "Found the defualt device: " << defaultDev;
       return true;
@@ -92,6 +92,7 @@ void MtpWatchDog::createDevices()
     threadedDev->moveToThread(QApplication::instance()->thread());
     connect(threadedDev, SIGNAL(Initialized (QMtpDevice*)),
             this, SIGNAL(NewDevice (QMtpDevice*)), Qt::QueuedConnection);
+    assert(!threadedDev->isRunning());
     threadedDev->start();
   }
 }
@@ -150,7 +151,10 @@ void MtpWatchDog::DeviceAdded(QString in_objRef)
     _subSystem->Initialize();
    
     if (findDefaultDevice() )
+    {
+      Unlock();
       return;
+    }
     else
      createDevices();
   }

@@ -13,7 +13,8 @@
  * @param in_device The raw LIBMtp device
  * @return Returns the requested device
  */
-MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device) 
+MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)  :
+                                                _initialized(false)
 {
   _device = in_device;
   _serialNumber = LIBMTP_Get_Serialnumber(_device);
@@ -77,6 +78,9 @@ void MtpDevice::Initialize()
 {
   if (!_device)
     return;
+
+  assert(_initialized== false);
+  _initialized = true;
 //  _progressFunc= NULL;
    _name = LIBMTP_Get_Friendlyname(_device);
 
@@ -483,6 +487,7 @@ void MtpDevice::createFileStructure()
   while (fileRoot)
   {
     MTP::File* currentFile = new MTP::File(fileRoot);
+    cout << "Creating new file: " << currentFile->Name() << endl;
     //sanity check
     count_t size = _objectMap.size();
     //take care to check the map's size before we check for crosslinks
@@ -494,7 +499,9 @@ void MtpDevice::createFileStructure()
     {
       cerr << "Serious file crosslink.. aborting please file a bug report at: "
       << " caffein@gmail.com" << endl;
-      cerr << " size: " << size << " new size:" << _objectMap.size();
+      cerr << " size: " << size << " new size:" << _objectMap.size() << endl;
+      cerr << "Previous type: " << previous->Type() << " Previous name: " << previous->Name() << endl;
+      cerr << "New type: " << currentFile->Type() << " new name: " << currentFile->Name() << endl;
       assert(false);
     }
     size = _objectMap.size();
