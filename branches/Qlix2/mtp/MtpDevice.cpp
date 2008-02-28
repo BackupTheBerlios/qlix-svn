@@ -391,8 +391,6 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root, bool firstRun)
     }
 
     _objectMap[temp->ID()] = temp; 
-    cout << "Added: " << temp->ID() << " to the map with name: " 
-         << temp->Name() << endl;
 
     //crosslink check
        folderRoot = folderRoot->sibling;
@@ -487,7 +485,6 @@ void MtpDevice::createFileStructure()
   while (fileRoot)
   {
     MTP::File* currentFile = new MTP::File(fileRoot);
-    cout << "Creating new file: " << currentFile->Name() << endl;
     //sanity check
     count_t size = _objectMap.size();
     //take care to check the map's size before we check for crosslinks
@@ -825,6 +822,40 @@ LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
     processErrorStack();
     return NULL;
   }
+  //device does not support JPEG samples..
+  if (ret == 0 && sample == NULL)
+  {
+    cerr << "Device does not support JPEG (proper) file type, checking for" 
+    <<" JPEG 2000 regular" << endl;
+    ret = LIBMTP_Get_Representative_Sample_Format(_device, 
+                                                         LIBMTP_FILETYPE_JP2,
+                                                         &sample);
+    if (ret != 0)
+    { 
+      processErrorStack();
+      return NULL;
+    }
+  }
+
+  //device does not support JPEG 2000 samples..
+  if (ret == 0 && sample == NULL)
+  {
+    cerr << "Device does not support JPEG 2000 regular file type, checking" 
+    " for JPEG 2000 extended" << endl;
+    ret = LIBMTP_Get_Representative_Sample_Format(_device, 
+                                                         LIBMTP_FILETYPE_JPX,
+                                                         &sample);
+    if (ret != 0)
+    { 
+      processErrorStack();
+      return NULL;
+    }
+  }
+  if (ret == 0 && sample == NULL)
+    cerr << "Device does not support JPEG filetype" << endl;
+  else if (ret == 0)
+    cerr << "Device supports JPEG filetype" << endl;
+
   return sample;
 }
 

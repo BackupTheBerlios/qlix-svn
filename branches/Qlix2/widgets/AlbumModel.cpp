@@ -167,7 +167,7 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
       {
         QPixmap ret;
         ret.loadFromData( (const uchar*)sample.data, sample.size);
-        qDebug() << "album decoration found:" << sample.filetype  << " with size: " << sample.size;
+//        qDebug() << "album decoration found:" << sample.filetype  << " with size: " << sample.size;
 #ifdef SIMULATE_TRANSFERS
         qDebug()  << "Actual sample found in simulate mode!";
 #endif
@@ -175,7 +175,7 @@ QVariant AlbumModel::data(const QModelIndex& index, int role ) const
       }
       else 
       {
-        qDebug() << "album decoration is not a jpeg:" << sample.filetype  << " with size: " << sample.size;
+//        qDebug() << "album decoration is not a jpeg:" << sample.filetype  << " with size: " << sample.size;
         QPixmap ret("pixmaps/miscAlbumCover.png");
         return ret.scaledToWidth(24, Qt::SmoothTransformation);
       }
