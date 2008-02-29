@@ -852,8 +852,8 @@ LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
     }
   }
   if (ret == 0 && sample == NULL)
-    cerr << "Device does not support JPEG filetype" << endl;
-  else if (ret == 0)
+    cerr << "Device does not support any JPEG filetype" << endl;
+  else if (ret == 0 && sample != NULL)
     cerr << "Device supports JPEG filetype" << endl;
 
   return sample;
