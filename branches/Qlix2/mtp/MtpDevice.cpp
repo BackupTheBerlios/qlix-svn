@@ -822,6 +822,7 @@ LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
     processErrorStack();
     return NULL;
   }
+  /*
   //device does not support JPEG samples..
   if (ret == 0 && sample == NULL)
   {
@@ -851,8 +852,12 @@ LIBMTP_filesampledata_t* MtpDevice::DefaultJPEGSample()
       return NULL;
     }
   }
-  if (ret == 0 && sample == NULL)
-    cerr << "Device does not support any JPEG filetype" << endl;
+  */
+
+  if(ret !=0)
+    cerr << "Problem getting JPEG information from device" << endl;
+  else if (ret == 0 && sample == NULL)
+    cerr << "Device does not support JPEG filetype" << endl;
   else if (ret == 0 && sample != NULL)
     cerr << "Device supports JPEG filetype" << endl;
 
