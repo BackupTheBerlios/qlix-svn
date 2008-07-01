@@ -1,0 +1,6 @@
+qlix (0.2.3)
+
+  * Fixed a bug in the discovery of playlists that aborted after discovering
+    crosslinks with file objects
+
+ -- Ali Shah <caffein@gmail.com>  

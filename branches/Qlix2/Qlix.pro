@@ -53,10 +53,12 @@ unix {
   LIBS += "-lmtp"
 
   CONFIG += qdbus
-
+  TARGET = "qlix"
   INCLUDEPATH +="/usr/include/"
   INCLUDEPATH +="/usr/local/include/"
   DEPENDPATH += "/usr/local/lib/"
   QMAKE_CXXFLAGS += $$TAGLIB_INC
+  #target.path = /usr/bin
+  #INSTALLS += target
 }
 include(modeltest/modeltest.pri)
