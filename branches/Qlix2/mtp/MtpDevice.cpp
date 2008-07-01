@@ -586,7 +586,7 @@ void MtpDevice::createTrackBasedStructures()
     LIBMTP_filesampledata_t temp;
     LIBMTP_Get_Representative_Sample(_device, albumRoot->album_id, &temp); 
 #ifdef QLIX_DEBUG
-    cout << "Discovred a sample of type: " << temp.filetype 
+    cout << "Discovered a sample of type: " << temp.filetype 
          << " with height: " << temp.height << " and width: "
          << temp.width << " with size: " << temp.size << endl;
 #endif
@@ -599,10 +599,10 @@ void MtpDevice::createTrackBasedStructures()
 
     MTP::GenericObject* previous = _objectMap[currentAlbum->ID()];
 
-    //crosslink check with file
+    //crosslink check with file database
     if(_objectMap.size() != size || previous == NULL)
     {
-       cerr << "ALbum not crosslinked with file as expected!" << 
+       cerr << "Album not crosslinked with file as expected!" << 
                " Please report this to caffein@gmail.com" << endl;
       assert(false);
     }
@@ -648,17 +648,32 @@ void MtpDevice::createTrackBasedStructures()
     count_t size = _objectMap.size();
 
     MTP::Playlist* currentPlaylist = new MTP::Playlist(playlistRoot);
-    _playlists.push_back(currentPlaylist);
+    //set the row index first, as it is zero based
     currentPlaylist->SetRowIndex(_playlists.size());
+    _playlists.push_back(currentPlaylist);
 
     MTP::GenericObject* previous = _objectMap[currentPlaylist->ID()];
-    _objectMap[currentPlaylist->ID()] = currentPlaylist; 
-    if (_objectMap.size() != size+1)
+    
+    //crosslink check with file database
+    if (_objectMap.size() != size || previous == NULL)
     {
-      cerr << "Playlist crosslinked! please report this " 
-           << " to caffein@gmail.com" << endl;
+       cerr << "Playlist not crosslinked with file as expected!" << 
+               " Please report this to caffein@gmail.com" << endl;
+       assert(false);
+    }
+
+    //crosslink check with albums
+    size = _playlistMap.size();
+    MTP::Playlist* previousPlaylist = _playlistMap[currentPlaylist->ID()];
+    if (_playlistMap.size() != size+1)
+    {
+      cerr << "Playlist crosslinked with another playlist! Please report this "
+           << "to caffein@gmail.com" << endl;
       assert(false);
     }
+
+    _playlistMap[currentPlaylist->ID()] = currentPlaylist; 
+
     //now iterate over the playlist's children..
     for (count_t j = 0; j < currentPlaylist->TrackCount(); j++)
     {
