@@ -52,6 +52,8 @@ public:
   QSortFilterProxyModel* GetDirModel() const;
   void Progress(uint64_t const sent, uint64_t const total);
   void FreeSpace(uint64_t* , uint64_t*);
+  void SetSelectedStorage(int);
+  int SelectedStorage();
 
 signals:
   void Initialized(QMtpDevice*);
@@ -100,6 +102,7 @@ private:
   QIcon _icon;
   QString _name;
   QString _serial;
+  int _storageID;
 
   QQueue <GenericCommand*> _jobs;
   QMutex _jobLock;

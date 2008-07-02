@@ -1,5 +1,5 @@
-#ifndef __MTPDEVICE__
-#define __MTPDEVICE__
+#ifndef MTPDEVICE
+#define MTPDEVICE
 #include <libmtp.h>
 #include <string>
 #include <map>
@@ -9,6 +9,8 @@
 #include <fileref.h>
 #include "types.h"
 #include "mtp/MtpObject.h"
+#include "mtp/MtpStorage.h"
+
 using namespace std;
 typedef map<uint32_t, MTP::GenericObject* > GenericMap;
 
@@ -32,13 +34,15 @@ public:
   char const * const Version() const;
   char const * const SyncPartner() const;
   char const * const ModelName() const;
-  bool BatterLevelSupport() const;
-  float BatterLevel() const;
+  bool BatteryLevelSupport() const;
+  float BatteryLevel() const;
+  unsigned int StorageDeviceCount() const;
+  MtpStorage* GetStorageDevice(unsigned int) const;
 
 //basic actions
   bool Fetch(uint32_t, char const * const );
   bool UpdateSpaceInformation();
-  void FreeSpace(uint64_t*, uint64_t*);
+  void FreeSpace(unsigned int, uint64_t*, uint64_t*);
 
 //Device structures information
   count_t AlbumCount() const;
@@ -53,7 +57,7 @@ public:
   MTP::File* RootFile(count_t idx) const;
 
 //Extended Album functions
-  bool NewAlbum(MTP::Track*, MTP::Album** );
+  bool NewAlbum(MTP::Track*, int, MTP::Album** );
   bool RemoveAlbum(MTP::Album*);
   bool UpdateAlbumArt(MTP::Album*, LIBMTP_filesampledata_t*);
   void AddAlbum(MTP::Album*);
@@ -92,8 +96,6 @@ private:
   count_t _maxBatteryLevel;
   count_t _currentBatteryLevel;
   bool _batteryLevelSupport;
-  uint64_t _freeSpace;
-  uint64_t _totalSpace;
 
   LIBMTP_progressfunc_t _progressFunc;
   const void* _progressData;
@@ -104,6 +106,7 @@ private:
   map<uint32_t, MTP::Playlist*> _playlistMap;
   void processErrorStack();
 
+  vector <MtpStorage*> _storageDeviceList;
   vector <string> _errorStack;
   vector <string> _supportedFileTypes;
   vector <MTP::GenericObject*> _crossLinked;
@@ -123,7 +126,5 @@ private:
   //Debug functions
   void dbgPrintSupportedFileTypes();
   void dbgPrintFolders(MTP::Folder*, count_t);
-
-  //Transfer functions
 };
 #endif 

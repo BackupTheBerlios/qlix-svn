@@ -3,6 +3,7 @@
 //     No this is a bad idea as sending files updates the file id we discover
 //TODO Cleanup: remove finding crosslinks using the "previous" techinique and
 //     STL's map::find function
+//TODO Storage IDs are not correctly handled
 
 #include "MtpDevice.h"
 #undef QLIX_DEBUG
@@ -18,6 +19,13 @@ MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)  :
 {
   _device = in_device;
   _serialNumber = LIBMTP_Get_Serialnumber(_device);
+  UpdateSpaceInformation();
+  LIBMTP_devicestorage_t* storage_dev = _device->storage;
+  while (storage_dev)
+  {
+    MtpStorage* new_storage = new MtpStorage(storage_dev); 
+    _storageDeviceList.push_back(new_storage);
+  }
 }
 
 /**
@@ -119,26 +127,47 @@ void MtpDevice::Initialize()
   UpdateSpaceInformation();
 }
 
-void MtpDevice::FreeSpace(uint64_t* total, uint64_t* free)
+/**
+ * Returns the total and free space on the requested storage device
+ * @param in_ID the storage ID of the storage device
+ * @param total the total amount of space on the device
+ * @param free the amount of free space on the device
+ */
+void MtpDevice::FreeSpace(unsigned int in_ID, uint64_t* out_total, uint64_t* out_free)
 {
-  *total = _totalSpace;
-  *free = _freeSpace;
+  MtpStorage* storage_dev;
+  for (unsigned int i =0; i < _storageDeviceList.size(); i ++)
+  {
+    if (_storageDeviceList[i]->ID() != in_ID)
+      continue;
+    storage_dev = _storageDeviceList[i];
+  }
+  if (!storage_dev)
+  {
+    *out_total = storage_dev->TotalSpace();
+    *out_free = storage_dev->FreeSpace();
+    return;
+  }
+  else
+  {
+    *out_total = 0;
+    *out_free = 0;
+  }
 }
 
 /**
- * Returns the number of folders found at the root level of the device
+ * @return the number of folders found at the root level of the device
  */
 count_t MtpDevice::RootFolderCount() const
 { return _rootFolders.size(); }
 
 /**
- * Returns the number of files found at the root level of the device
+ * @return the number of files found at the root level of the device
  */
 count_t MtpDevice::RootFileCount() const
 { return _rootFiles.size(); }
 
 /**
- * Returns the Folder at the given index if it exists
  * @return the Folder at the given index or NULL if it is out of bounds
  */
 MTP::Folder* MtpDevice::RootFolder(count_t idx) const
@@ -149,7 +178,6 @@ MTP::Folder* MtpDevice::RootFolder(count_t idx) const
 }
 
 /**
- * Returns the root File at the given index if it exists
  * @return the root File at the given index or NULL if it is out of bounds
  */
 MTP::File* MtpDevice::RootFile(count_t idx) const
@@ -161,20 +189,18 @@ MTP::File* MtpDevice::RootFile(count_t idx) const
 
 
 /**
- * Returns the number of albums on the device
+ * @return the number of albums on the device
  */
 count_t MtpDevice::AlbumCount() const
 { return _albums.size(); }
 
 /**
- * Returns the number of playlists on the device
+ * @return the number of playlists on the device
  */
 count_t MtpDevice::PlaylistCount() const
 { return _playlists.size(); }
 
-
 /**
- * Returns the Album at the given index if it exists
  * @return the Album at the given index or NULL if it is out of bounds
  */
 MTP::Album* MtpDevice::Album(count_t idx) const
@@ -185,7 +211,6 @@ MTP::Album* MtpDevice::Album(count_t idx) const
 }
 
 /**
- * Returns the Playlist at the given index if it exists
  * @return the Playlist at the given index or NULL if it is out of bounds
  */
 MTP::Playlist* MtpDevice::Playlist(count_t idx) const
@@ -200,6 +225,7 @@ MTP::Playlist* MtpDevice::Playlist(count_t idx) const
  * Retrieves the object to the specificed path
  * @param in_id the item id of the requested Mtp object
  * @param path the path to retreive to
+ * @return true if the fetch was successfull or false otherwise
  */
 bool MtpDevice::Fetch(uint32_t in_id, char const * const path)
 {
@@ -216,9 +242,8 @@ bool MtpDevice::Fetch(uint32_t in_id, char const * const path)
   return true; 
 }
 
-
 /**
- * @return Returns the name of the device as a UTF8 string
+ * @return the name of the device as a UTF8 string
  */
 char const * const MtpDevice::Name() const
 {
@@ -235,7 +260,7 @@ char const * const MtpDevice::SerialNumber() const
 }
 
 /**
- * @return Returns the version of the device as a UTF8 string
+ * @return the version of the device as a UTF8 string
  */
 char const * const MtpDevice::Version() const
 {
@@ -243,7 +268,7 @@ char const * const MtpDevice::Version() const
 }
 
 /**
- * @return Returns the sync partner of the device as a UTF8 string
+ * @return the sync partner of the device as a UTF8 string
  */
 char const * const MtpDevice::SyncPartner() const
 {
@@ -251,7 +276,7 @@ char const * const MtpDevice::SyncPartner() const
 }
 
 /**
- * @return Returns the model name of the device as a UTF8 string
+ * @return the model name of the device as a UTF8 string
  */
 char const * const MtpDevice::ModelName() const
 {
@@ -259,21 +284,40 @@ char const * const MtpDevice::ModelName() const
 }
 
 /**
- * @return Returns whether retreiveing the battery level failed
+ * @return whether retreiveing the battery level failed
  */
-bool MtpDevice::BatterLevelSupport() const
+bool MtpDevice::BatteryLevelSupport() const
 {
   return _batteryLevelSupport;
 }
 
 /**
- * Returns the battery level in the form of a percentage;
- * @return Returns the percentage of charge the battery holds
+ * @return the percentage of charge the battery holds
  */
-float MtpDevice::BatterLevel() const 
+float MtpDevice::BatteryLevel() const 
 {
   float ret = (float) ((float)_maxBatteryLevel / (float)_currentBatteryLevel);
   return ret;
+}
+
+/**
+ * @return the number of storage devices associated with this device
+ */
+unsigned int MtpDevice::StorageDeviceCount() const
+{
+  return _storageDeviceList.size();
+}
+
+/**
+ * @param in_idx the index of storage device
+ * @return the requested storage device
+ */
+MtpStorage* MtpDevice::GetStorageDevice(unsigned int in_idx) const
+{
+  if (in_idx > _storageDeviceList.size())
+    return NULL;
+  else
+    return _storageDeviceList[in_idx];
 }
 
 /**
@@ -299,6 +343,8 @@ void MtpDevice::processErrorStack()
 /**
  * Sets the callback progress function for operations with the MTP device
  * @param in_func the callback function to invoke during MTP operations
+ * @param in_data a pointer to an object that will be used to update the 
+ *        of the GUI
  */
 void MtpDevice::SetProgressFunction(LIBMTP_progressfunc_t in_func,
                                     const void* const in_data)
@@ -346,7 +392,9 @@ void MtpDevice::AddAlbum(MTP::Album* in)
 }
 
 /**
- * Recursively builds the directory structure
+ * Recursively builds the folder structure
+ * @param in_root the root folder on the device
+ * @param firstRun whether to retreive a fresh list of folders from the device
  */
 void MtpDevice::createFolderStructure(MTP::Folder* in_root, bool firstRun)
 {
@@ -416,7 +464,7 @@ void MtpDevice::dbgPrintSupportedFileTypes()
 /**
  * Recursively prints the folders discovered
  * @param root the current level's root folder
- * @level the current depth of the traversal used for alignment
+ * @param level the current depth of the traversal used for ASCII alignment
  */
 void MtpDevice::dbgPrintFolders(MTP::Folder* root, count_t level)
 {
@@ -698,12 +746,17 @@ void MtpDevice::createTrackBasedStructures()
   }
 }
 
-bool MtpDevice::TransferTrack(const char* in_path, MTP::Track* track)
+/**
+ *  Transfers a track to the device
+ *  @param in_path the path of the file to transfer
+ *  @param in_track the track metadata for this file
+ *  @return true if succesfull, false otherwise
+ */
+bool MtpDevice::TransferTrack(const char* in_path, MTP::Track* in_track)
 {
 #ifndef SIMULATE_TRANSFERS
-  int ret = LIBMTP_Send_Track_From_File(_device, in_path, track->RawTrack(),
-                                        _progressFunc, _progressData, 
-                                        track->RawTrack()->parent_id);
+  int ret = LIBMTP_Send_Track_From_File(_device, in_path, in_track->RawTrack(),
+                                        _progressFunc, _progressData);
   if (ret != 0)
   {
     processErrorStack();
@@ -713,18 +766,22 @@ bool MtpDevice::TransferTrack(const char* in_path, MTP::Track* track)
 
   //necessary due to stupid inheritence
   //TODO fix this?
-  track->SetID(track->RawTrack()->item_id);
-  cout << "Transfer succesfull, new id: " << track->ID() << endl;
+  in_track->SetID(in_track->RawTrack()->item_id);
+  cout << "Transfer succesfull, new id: " << in_track->ID() << endl;
   UpdateSpaceInformation();
   return true;
 }
 
-
-bool MtpDevice::TransferFile(const char* in_path, MTP::File* file)
+/**
+ * Transfers a file to the device
+ * @param in_path the path of the file to transfer
+ * @param in_file the metadata for the file
+ * @return true if succesfull, false otherwise
+ */
+bool MtpDevice::TransferFile(const char* in_path, MTP::File* in_file)
 {
-  int ret = LIBMTP_Send_File_From_File(_device, in_path, file->RawFile(),
-                                        _progressFunc, _progressData, 
-                                        file->RawFile()->parent_id);
+  int ret = LIBMTP_Send_File_From_File(_device, in_path, in_file->RawFile(),
+                                        _progressFunc, _progressData);
   if (ret != 0)
   {
     processErrorStack();
@@ -750,8 +807,6 @@ bool MtpDevice::UpdateSpaceInformation()
     processErrorStack();
     return false;
   }
-  (_totalSpace) = _device->storage->MaxCapacity;
-  (_freeSpace)  = _device->storage->FreeSpaceInBytes;
   return true;
 }
 
@@ -764,17 +819,22 @@ bool MtpDevice::UpdateSpaceInformation()
  *
  * @param in_track the track that is used as a template for the album's name,
  *        artist, and genre fields.
+ * @param in_storageID the storage id to create the album on
  * @param out_album the newly allocated MTP::Album, if the operation fails
  *        this value is NULL
  * @return true if successfull false otherwise
  */
-bool MtpDevice::NewAlbum(MTP::Track* in_track, MTP::Album** out_album)
+bool MtpDevice::NewAlbum(MTP::Track* in_track, int in_storageID, 
+                         MTP::Album** out_album)
 {
   LIBMTP_album_t* newAlbum = LIBMTP_new_album_t();
   newAlbum->name = strdup(in_track->AlbumName());
   newAlbum->artist = strdup(in_track->ArtistName());
   newAlbum->genre = strdup(in_track->Genre());
   newAlbum->tracks  = NULL;
+  newAlbum->parent_id = 0;
+  newAlbum->storage_id = in_storageID;
+
   cerr << "Created new album with name: " << newAlbum->name << endl;
   cerr << "Created new album with artist: " << newAlbum->artist << endl;
   cerr << "Created new album with genre: " << newAlbum->genre << endl;
@@ -783,7 +843,7 @@ bool MtpDevice::NewAlbum(MTP::Track* in_track, MTP::Album** out_album)
   newAlbum->no_tracks = 0;
   newAlbum->next = NULL;
 #ifndef SIMULATE_TRANSFERS
-  int ret =  LIBMTP_Create_New_Album(_device, newAlbum, 0);
+  int ret =  LIBMTP_Create_New_Album(_device, newAlbum);
   if (ret != 0)
   {
     (*out_album) = NULL;
@@ -801,7 +861,9 @@ bool MtpDevice::NewAlbum(MTP::Track* in_track, MTP::Album** out_album)
 
 /**
  * This function updates the representative sample of album on the device 
- * @return true if the operation succeeded, false otherwise.
+ * @param in_album the album whose art should be updated
+ * @param in_sample the album art encased in a LIBMTP_filesampledata_t* struct
+ * @return true if the operation succeeded, false otherwise
  */
 bool MtpDevice::UpdateAlbumArt(MTP::Album* in_album, 
                                LIBMTP_filesampledata_t* in_sample)
@@ -901,7 +963,10 @@ bool MtpDevice::AddTrackToAlbum(MTP::Track* in_track, MTP::Album* in_album)
 #endif
   return true;
 }
-
+/**
+ * Removes a track from the device
+ * @param in_track the track to remove
+ */
 bool MtpDevice::RemoveTrack(MTP::Track* in_track)
 {
   assert(in_track);
@@ -928,11 +993,14 @@ bool MtpDevice::RemoveTrack(MTP::Track* in_track)
   return true;
 }
 
+/** 
+ * Removes an album from the device
+ * @param in_album the album to remove
+ */
 bool MtpDevice::RemoveAlbum(MTP::Album* in_album)
 {
   assert(in_album);
   assert(in_album->GetRowIndex() >= 0);
-//  parentAlbum->RemoveFromRawAlbum(in_track->GetRowIndex());
 
 #ifndef SIMULATE_TRANSFERS
   bool ret = LIBMTP_Delete_Object(_device, in_album->ID());
@@ -944,4 +1012,3 @@ bool MtpDevice::RemoveAlbum(MTP::Album* in_album)
 #endif
   return true;
 }
-

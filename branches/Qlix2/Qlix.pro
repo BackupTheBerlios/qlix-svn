@@ -27,6 +27,7 @@ HEADERS += linuxsignals.h \
            widgets/DeviceExplorer.h \
            widgets/QlixMainWindow.h
 SOURCES += main.cpp \
+           mtp/MtpStorage.cpp \
            mtp/MtpDevice.cpp \
            mtp/MtpObject.cpp \
            mtp/MtpSubSystem.cpp \

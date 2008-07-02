@@ -444,7 +444,20 @@ int QMtpDevice::progressWrapper(uint64_t const sent, uint64_t const total, const
 
 void QMtpDevice::FreeSpace(uint64_t* total , uint64_t* free) 
 {
-  _device->FreeSpace(total, free);
+  _device->FreeSpace(SelectedStorage(), total, free);
+}
+
+void QMtpDevice::SetSelectedStorage(int in_storageID)
+{
+  _storageID = in_storageID;
+}
+
+/*
+ * @return the storage id that was selected for this view
+ */
+int QMtpDevice::SelectedStorage()
+{
+  return _storageID;
 }
 
 /**
@@ -494,7 +507,7 @@ void QMtpDevice::syncTrack(TagLib::FileRef tagFile, uint32_t parent)
   if (!trackAlbum)
   {
     //first try adding a new album to the device because one does not exist..
-    if(!_device->NewAlbum(newTrack, &trackAlbum))
+    if(!_device->NewAlbum(newTrack, SelectedStorage(), &trackAlbum))
     {
       qDebug() << "Failed to create new album";
       return;
@@ -593,6 +606,7 @@ MTP::File* QMtpDevice::SetupFileTransfer(const char* in_filename,
   LIBMTP_file_t* file = LIBMTP_new_file_t();
   file->filename = strdup(in_filename);
   file->filesize = in_sz;
+  file->storage_id = SelectedStorage();
   file->parent_id = in_parentid;
   file->filetype = in_type;
   return new MTP::File(file);
@@ -651,6 +665,7 @@ MTP::Track* QMtpDevice::SetupTrackTransfer(TagLib::FileRef tagFile,
 
     newtrack->parent_id = in_parentID;
     newtrack->title = title;
+    newtrack->storage_id = SelectedStorage();
     newtrack->artist = artist;
     newtrack->genre = genre;
     newtrack->album = album;

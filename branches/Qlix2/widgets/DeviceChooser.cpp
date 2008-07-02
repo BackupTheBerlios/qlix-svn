@@ -13,7 +13,8 @@ DeviceChooser::DeviceChooser(QWidget* parent)
 }
 
 /* 
- * Initializes a button for each device detected, or displays the No devices detected scree
+ * Initializes a button for each device detected, or displays the No devices 
+ * detected screen
  */
 void DeviceChooser::initialize()
 {

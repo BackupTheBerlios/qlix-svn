@@ -61,7 +61,11 @@ void DeviceButton::setupConnections()
  * Private slot that gets called when the button is clicked
  * it emits the Selected button
  */
-void DeviceButton::buttonClicked() { emit Selected(_device); }
+void DeviceButton::buttonClicked() 
+{ 
+  _device->SetSelectedStorage(0);
+  emit Selected(_device); 
+}
 
 /**
  * Private slot that is called when the checkbox is checked 
