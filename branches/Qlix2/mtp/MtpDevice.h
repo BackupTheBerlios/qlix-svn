@@ -26,7 +26,6 @@ public:
   void Initialize();
   void SetProgressFunction(LIBMTP_progressfunc_t, const void* const );
   void ClearObjectMappings();
-  void ReleaseDevice();
 
 //basic device properties
   char const * const Name() const;

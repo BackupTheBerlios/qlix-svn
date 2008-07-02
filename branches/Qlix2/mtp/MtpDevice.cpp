@@ -25,6 +25,7 @@ MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)  :
   {
     MtpStorage* new_storage = new MtpStorage(storage_dev); 
     _storageDeviceList.push_back(new_storage);
+    storage_dev = storage_dev->next;
   }
 }
 
@@ -63,19 +64,7 @@ MtpDevice::~MtpDevice()
     _modelName = NULL;
   }
 
-
   ClearObjectMappings();
-}
-/**
- * Release the wrapped device
- */
-void MtpDevice::ReleaseDevice()
-{
-  if(_device)
-  {
-    LIBMTP_Release_Device(_device);
-    _device = NULL;
-  }
 }
 
 /**
@@ -409,7 +398,7 @@ void MtpDevice::createFolderStructure(MTP::Folder* in_root, bool firstRun)
 
   while (folderRoot)
   {
-    count_t size = _objectMap.size();
+    //count_t size = _objectMap.size();
     //if there is a parent, set the new folder's parent. And add to the 
     //parent's childlist
     MTP::Folder* temp;
@@ -600,7 +589,6 @@ void MtpDevice::createTrackBasedStructures()
   //create the wrapper tracks
   while (trackRoot)
   {
-    count_t size = _objectMap.size();
     MTP::Track* currentTrack = new MTP::Track(trackRoot);
     _tracks.push_back(currentTrack);
 //    cout << "Inserting track with ID: " << currentTrack->ID() << endl;

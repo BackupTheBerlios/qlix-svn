@@ -1,8 +1,10 @@
 #include "MtpStorage.h"
 MtpStorage::MtpStorage(LIBMTP_devicestorage_t* in_storage)
 {
-  strcpy(in_storage->StorageDescription, _description);
-  strcpy(in_storage->VolumeIdentifier, _volumeID);
+  _description = new char[strlen(in_storage->StorageDescription)];
+  _volumeID = new char[strlen(in_storage->VolumeIdentifier)];
+  strcpy(_description, in_storage->StorageDescription);
+  strcpy(_volumeID, in_storage->VolumeIdentifier);
 }
 
 MtpStorage::~MtpStorage()

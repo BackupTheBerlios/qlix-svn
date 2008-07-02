@@ -52,16 +52,22 @@ void MtpSubSystem::ReleaseDevices()
   {
     if (_devList[i])
     {
-      _devList[i]->ReleaseDevice();
       delete _devList[i];
       _devList[i] = NULL;
     }
   }
   _devList.clear();
+  LIBMTP_mtpdevice_t* rawDeviceList = _deviceList;
+  while (rawDeviceList)
+  {
+    LIBMTP_Release_Device(rawDeviceList);
+    rawDeviceList = rawDeviceList->next;
+  }
   _deviceList = NULL;
 #else
   for (count_t i=0; i < _devList.size(); i++)
   {
+    //Release the first devicea as all the rest are clones of it..
     if (i == 0)
       _devList[0]->ReleaseDevice();
     delete _devList[i];
@@ -77,77 +83,6 @@ void MtpSubSystem::ReleaseDevices()
 count_t MtpSubSystem::DeviceCount() const
 {
   return _devList.size();
-}
-
-/**
- * This function has been scrapped as we need to use HAL/DBUS
- */
-count_t MtpSubSystem::RawDeviceCount (MtpDeviceVector* connected, 
-                                      MtpDeviceVector* disconnected,
-                                      MtpDeviceVector* newDevice)
-{
-  return 0;
-  /*
-  LIBMTP_mtpdevice_t* list; 
-  LIBMTP_error_number_t tempNum;
-  tempNum = LIBMTP_Get_Connected_Devices(&list);
-  count_t newDeviceCount = LIBMTP_Number_Devices_In_List(list);
-
-  vector <LIBMTP_mtpdevice_t*> currentDevList;
-  vector <MtpDevice*> oldDevList;
-  oldDevList.swap(_devList);
-
-  //iterate over the list of previously found devices and figure out who has 
-  //been disconnected
-  while(list)
-  {
-    currentDevList.push_back(list);
-    list = list->next;
-  }
-  assert (currentDevList.size() == newDeviceCount);
-
-  for (count_t i =0; i < oldDevList.size(); i++)
-  {
-    bool seen = false;
-
-    for (count_t j = 0; j < newDeviceCount; j++)
-    {
-      if (oldDevList[i]->RawDevice() == currentDevList[j] )
-        seen = true;
-    }
-    if (seen)
-    {
-      connected->push_back(oldDevList[i]);
-      _devList.push_back(oldDevList[i]);
-    }
-    if (!seen)
-      disconnected->push_back(oldDevList[i]);
-  }
-
-  for (count_t i =0; i< newDeviceCount; i++)
-  {
-    bool seen = false;
-    MtpDevice* seenDevice;
-    for (count_t j =0; j < oldDevList.size(); j++)
-    {
-      if (currentDevList[i] == oldDevList[j]->RawDevice()) 
-      {
-        assert(!seen);
-        seen = true;
-        seenDevice = oldDevList[j];
-      }
-    }
-    if (!seen)
-    {
-      MtpDevice* dev = new MtpDevice(currentDevList[i]);
-      newDevice->push_back(dev);
-      _devList.push_back(dev);
-    }
-  }
-  assert(_devList.size() == newDevice->size() + connected->size());
-  assert(_devList.size() == newDeviceCount);
-  return newDeviceCount;
-  */
 }
 
 /**
