@@ -20,13 +20,6 @@ MtpDevice::MtpDevice(LIBMTP_mtpdevice_t* in_device)  :
   _device = in_device;
   _serialNumber = LIBMTP_Get_Serialnumber(_device);
   UpdateSpaceInformation();
-  LIBMTP_devicestorage_t* storage_dev = _device->storage;
-  while (storage_dev)
-  {
-    MtpStorage* new_storage = new MtpStorage(storage_dev); 
-    _storageDeviceList.push_back(new_storage);
-    storage_dev = storage_dev->next;
-  }
 }
 
 /**
@@ -124,24 +117,20 @@ void MtpDevice::Initialize()
  */
 void MtpDevice::FreeSpace(unsigned int in_ID, uint64_t* out_total, uint64_t* out_free)
 {
-  MtpStorage* storage_dev;
-  for (unsigned int i =0; i < _storageDeviceList.size(); i ++)
+  for (unsigned int i =0; i < _storageDeviceList.size(); i++)
   {
-    if (_storageDeviceList[i]->ID() != in_ID)
-      continue;
-    storage_dev = _storageDeviceList[i];
+    if (_storageDeviceList[i]->ID() == in_ID)
+    {
+      MtpStorage* storage_dev = _storageDeviceList[i];
+      cout << "Storage reporting: " << storage_dev->TotalSpace() << " and " <<
+               storage_dev->FreeSpace() << endl;;
+      *out_total = storage_dev->TotalSpace();
+      *out_free = storage_dev->FreeSpace();
+      return;
+    }
   }
-  if (!storage_dev)
-  {
-    *out_total = storage_dev->TotalSpace();
-    *out_free = storage_dev->FreeSpace();
-    return;
-  }
-  else
-  {
-    *out_total = 0;
-    *out_free = 0;
-  }
+  *out_total = 0;
+  *out_free = 0;
 }
 
 /**
@@ -301,7 +290,7 @@ unsigned int MtpDevice::StorageDeviceCount() const
  * @param in_idx the index of storage device
  * @return the requested storage device
  */
-MtpStorage* MtpDevice::GetStorageDevice(unsigned int in_idx) const
+MtpStorage* MtpDevice::StorageDevice(unsigned int in_idx) const
 {
   if (in_idx > _storageDeviceList.size())
     return NULL;
@@ -795,6 +784,19 @@ bool MtpDevice::UpdateSpaceInformation()
     processErrorStack();
     return false;
   }
+  for (int i =0; i < _storageDeviceList.size(); i++)
+  {
+    delete _storageDeviceList[i];
+  }
+  _storageDeviceList.clear();
+
+  LIBMTP_devicestorage_t* storage_dev = _device->storage;
+  while (storage_dev)
+  {
+    MtpStorage* new_storage = new MtpStorage(storage_dev); 
+    _storageDeviceList.push_back(new_storage);
+    storage_dev = storage_dev->next;
+  }
   return true;
 }
 
@@ -988,7 +990,6 @@ bool MtpDevice::RemoveTrack(MTP::Track* in_track)
 bool MtpDevice::RemoveAlbum(MTP::Album* in_album)
 {
   assert(in_album);
-  assert(in_album->GetRowIndex() >= 0);
 
 #ifndef SIMULATE_TRANSFERS
   bool ret = LIBMTP_Delete_Object(_device, in_album->ID());

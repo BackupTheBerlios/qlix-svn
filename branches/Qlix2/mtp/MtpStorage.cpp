@@ -1,10 +1,14 @@
 #include "MtpStorage.h"
-MtpStorage::MtpStorage(LIBMTP_devicestorage_t* in_storage)
+MtpStorage::MtpStorage(LIBMTP_devicestorage_t* in_storage) :
+_totalSpace(0),
+_freeSpace(0)
 {
   _description = new char[strlen(in_storage->StorageDescription)];
   _volumeID = new char[strlen(in_storage->VolumeIdentifier)];
   strcpy(_description, in_storage->StorageDescription);
   strcpy(_volumeID, in_storage->VolumeIdentifier);
+  _totalSpace = in_storage->MaxCapacity;
+  _freeSpace = in_storage->FreeSpaceInBytes;
 }
 
 MtpStorage::~MtpStorage()

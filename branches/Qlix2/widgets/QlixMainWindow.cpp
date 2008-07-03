@@ -3,6 +3,7 @@
 QlixMainWindow::QlixMainWindow(MtpSubSystem* in_subsystem)
 {
   setMinimumSize(800,500);
+  QWidget::setWindowIcon(QIcon(":/pixmaps/qlix.xpm"));
 
   _watchDog = new MtpWatchDog(in_subsystem);
   _deviceChooser = new DeviceChooser(this);

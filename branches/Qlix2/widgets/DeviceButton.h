@@ -3,11 +3,14 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 #include <QCheckBox>
+#include <QComboBox>
 #include <QString>
 #include <QSpacerItem>
 #include "widgets/QMtpDevice.h"
+#include "mtp/MtpStorage.h"
 /** 
- * @class DeviceButton Class that displays the device icon and auto connect box
+ * @class a button class that displays the device icon and auto connect box,
+ * and depending on how many storage devices exist on the device, a combo box
 */
 class DeviceButton : public QVBoxLayout
 {
@@ -27,6 +30,7 @@ private:
   void setupConnections();
   QMtpDevice* _device;
   QCheckBox* _checkBox;
+  QComboBox* _comboBox;
   QToolButton* _button;
 };
 #endif

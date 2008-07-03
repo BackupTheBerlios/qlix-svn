@@ -67,7 +67,7 @@ void MtpSubSystem::ReleaseDevices()
 #else
   for (count_t i=0; i < _devList.size(); i++)
   {
-    //Release the first devicea as all the rest are clones of it..
+    //Release the first device as all the rest are clones of it..
     if (i == 0)
       _devList[0]->ReleaseDevice();
     delete _devList[i];

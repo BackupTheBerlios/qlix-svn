@@ -442,22 +442,50 @@ int QMtpDevice::progressWrapper(uint64_t const sent, uint64_t const total, const
   return 0;
 }
 
-void QMtpDevice::FreeSpace(uint64_t* total , uint64_t* free) 
+/**
+ * Probes the device for free space
+ * @param out_total the total amount of space on the device
+ * @param out_free the total amount of free space on the device
+ */
+void QMtpDevice::FreeSpace(uint64_t* out_total , uint64_t* out_free) 
 {
-  _device->FreeSpace(SelectedStorage(), total, free);
+  _device->FreeSpace(SelectedStorage(), out_total, out_free);
 }
 
+/**
+ * Sets the default storage ID for all transfer and create requests that are
+ * made to the device
+ * @param in_storageID the storage ID that will be the default
+ */
 void QMtpDevice::SetSelectedStorage(int in_storageID)
 {
   _storageID = in_storageID;
 }
 
-/*
+/**
  * @return the storage id that was selected for this view
  */
-int QMtpDevice::SelectedStorage()
+unsigned int QMtpDevice::SelectedStorage()
 {
   return _storageID;
+}
+
+/** 
+ * @return the number of storage devices that exist on this MTP device
+ */
+unsigned int QMtpDevice::StorageDeviceCount()
+{
+  return _device->StorageDeviceCount();
+}
+
+/**
+ * @param in_idx the index of requested storage device if the index is out of 
+ * bounds, this function returns NULL
+ * @return the requested storage device by index
+ */
+MtpStorage* QMtpDevice::StorageDevice(unsigned int in_idx)
+{
+  return _device->StorageDevice(in_idx);
 }
 
 /**

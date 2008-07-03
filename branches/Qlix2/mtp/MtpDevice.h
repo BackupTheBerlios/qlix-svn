@@ -36,7 +36,7 @@ public:
   bool BatteryLevelSupport() const;
   float BatteryLevel() const;
   unsigned int StorageDeviceCount() const;
-  MtpStorage* GetStorageDevice(unsigned int) const;
+  MtpStorage* StorageDevice(unsigned int) const;
 
 //basic actions
   bool Fetch(uint32_t, char const * const );

@@ -53,7 +53,9 @@ public:
   void Progress(uint64_t const sent, uint64_t const total);
   void FreeSpace(uint64_t* , uint64_t*);
   void SetSelectedStorage(int);
-  int SelectedStorage();
+  unsigned int SelectedStorage();
+  unsigned int StorageDeviceCount();
+  MtpStorage* StorageDevice(unsigned int);
 
 signals:
   void Initialized(QMtpDevice*);

@@ -6,13 +6,29 @@
  * @param parent The parent widget
  * @return Returns a DeviceButton object
  */
-DeviceButton::DeviceButton (QMtpDevice* in_device, QWidget* parent)
+DeviceButton::DeviceButton (QMtpDevice* in_device, QWidget* parent) :
+                            _comboBox(NULL)
 {
   _device = in_device;
 
   QString name = _device->Name();
   _checkBox = new QCheckBox("Connect on startup");
   _button = new QToolButton();
+  const count_t deviceCount = in_device->StorageDeviceCount();
+  if (deviceCount > 1)
+  {
+    _comboBox = new QComboBox();
+    for (count_t i = 0; i < in_device->StorageDeviceCount(); i++ )
+    {
+      MtpStorage* storage_device = in_device->StorageDevice(i);
+      assert(storage_device);
+      QString description = QString::fromUtf8(storage_device->Description() );
+      if (description.length() == 0)
+        description = QString::fromUtf8(storage_device->VolumeID() );
+      QVariant storageID = storage_device->ID();
+      _comboBox->addItem(description, storageID);
+    }
+  }
 
   _button->setText(name);
   _button->setIcon(_device->Icon());
@@ -23,16 +39,14 @@ DeviceButton::DeviceButton (QMtpDevice* in_device, QWidget* parent)
 
   QSpacerItem* temp = new QSpacerItem(10, 10, QSizePolicy::Maximum,
                                             QSizePolicy::Expanding);
-
   addItem(temp);
-
   addWidget(_button);
+  if (deviceCount > 1)
+    addWidget(_comboBox);
   addWidget(_checkBox);
-
   temp = new QSpacerItem(10, 10, QSizePolicy::Maximum,
                                             QSizePolicy::Expanding);
   addItem(temp);
-
   setupConnections();
 }
 
@@ -63,7 +77,16 @@ void DeviceButton::setupConnections()
  */
 void DeviceButton::buttonClicked() 
 { 
-  _device->SetSelectedStorage(0);
+  if (!_comboBox)
+  {
+    count_t id = _device->StorageDevice(0)->ID();
+    _device->SetSelectedStorage(id);
+  }
+  else
+  {
+    count_t id = _comboBox->itemData(_comboBox->currentIndex()).toInt();
+    _device->SetSelectedStorage(id);
+  }
   emit Selected(_device); 
 }
 
